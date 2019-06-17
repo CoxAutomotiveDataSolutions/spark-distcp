@@ -5,40 +5,40 @@ import java.net.URI
 /**
   * Result of the DistCP copy used for both logging to a logger and a file.
   */
-case class CopyResult(source: URI, destination: URI, copyType: ActionType, copyAction: CopyActionResult) extends DistCPResult {
-  def getMessage: String = s"Source: [$source], Destination: [$destination], Type: [${copyType.message}], Result: [${copyAction.message}]"
+trait CopyResult extends DistCPResult {
 }
 
-sealed trait ActionType extends Serializable {
-  def message: String = this.getClass.getSimpleName
+case class FileCopyResult(source: URI, destination: URI, len: Long, copyAction: FileCopyActionResult) extends CopyResult {
+  def getMessage: String = s"Source: [$source], Destination: [$destination], Type: [FileCopy: $len bytes], Result: [${copyAction.message}]"
 }
 
-object ActionType {
-
-  object DirectoryCreate extends ActionType
-
-  object FileCopy extends ActionType
-
+case class DirectoryCopyResult(source: URI, destination: URI, copyAction: DirectoryCreateActionResult) extends CopyResult {
+  def getMessage: String = s"Source: [$source], Destination: [$destination], Type: [DirectoryCreate], Result: [${copyAction.message}]"
 }
-
 
 sealed trait CopyActionResult extends Serializable {
-  def message: String = this.getClass.getSimpleName
+  def message: String = this.getClass.getSimpleName.stripSuffix("$")
 }
+
+sealed trait FileCopyActionResult extends CopyActionResult
+
+sealed trait DirectoryCreateActionResult extends CopyActionResult
 
 object CopyActionResult {
 
-  object SkippedAlreadyExists extends CopyActionResult
+  object SkippedAlreadyExists extends FileCopyActionResult with DirectoryCreateActionResult
 
-  object SkippedIdenticalFileAlreadyExists extends CopyActionResult
+  object SkippedIdenticalFileAlreadyExists extends FileCopyActionResult
 
-  object SkippedDryRun extends CopyActionResult
+  object SkippedDryRun extends FileCopyActionResult with DirectoryCreateActionResult
 
-  object Created extends CopyActionResult
+  object Created extends DirectoryCreateActionResult
 
-  object Copied extends CopyActionResult
+  object Copied extends FileCopyActionResult
 
-  case class Failed(e: Throwable) extends CopyActionResult {
+  object OverwrittenOrUpdated extends FileCopyActionResult
+
+  case class Failed(e: Throwable) extends FileCopyActionResult with DirectoryCreateActionResult {
     override def message: String = s"${super.message}: ${e.getMessage}"
   }
 
