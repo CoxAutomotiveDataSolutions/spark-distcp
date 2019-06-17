@@ -108,6 +108,8 @@ object SparkDistCP extends Logging {
       case Some(f) => allResults.repartition(1).map(_.getMessage).toDS().write.mode(SaveMode.Append).csv(f.toString)
     }
 
+    logInfo("SparkDistCP Run Statistics\n" + accumulators.getOutputText)
+
   }
 
   /**

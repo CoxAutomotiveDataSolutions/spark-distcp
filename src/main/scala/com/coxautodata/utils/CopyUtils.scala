@@ -85,7 +85,7 @@ object CopyUtils extends Logging {
   /**
     * Internal create directory function
     */
-  private[utils] def createDirectory(destFS: FileSystem, definition: SingleCopyDefinition, options: SparkDistCPOptions): CopyResult = {
+  private[utils] def createDirectory(destFS: FileSystem, definition: SingleCopyDefinition, options: SparkDistCPOptions): DirectoryCopyResult = {
     val destPath = new Path(definition.destination)
     if (destFS.exists(destPath)) {
       DirectoryCopyResult(definition.source.getPath.toUri, definition.destination, CopyActionResult.SkippedAlreadyExists)
@@ -119,7 +119,7 @@ object CopyUtils extends Logging {
   /**
     * Internal copy file function
     */
-  private[utils] def copyFile(sourceFS: FileSystem, destFS: FileSystem, definition: SingleCopyDefinition, options: SparkDistCPOptions, taskAttemptID: Long): CopyResult = {
+  private[utils] def copyFile(sourceFS: FileSystem, destFS: FileSystem, definition: SingleCopyDefinition, options: SparkDistCPOptions, taskAttemptID: Long): FileCopyResult = {
     val destPath = new Path(definition.destination)
     Try(destFS.getFileStatus(destPath)) match {
       case Failure(_: FileNotFoundException) if options.dryRun =>
@@ -192,7 +192,7 @@ object CopyUtils extends Logging {
     * Internal copy function
     * Only pass in true for removeExisting if the file actually exists
     */
-  def performCopy(sourceFS: FileSystem, sourceFile: SerializableFileStatus, destFS: FileSystem, dest: URI, removeExisting: Boolean, ignoreErrors: Boolean, taskAttemptID: Long): CopyResult = {
+  def performCopy(sourceFS: FileSystem, sourceFile: SerializableFileStatus, destFS: FileSystem, dest: URI, removeExisting: Boolean, ignoreErrors: Boolean, taskAttemptID: Long): FileCopyResult = {
 
     val destPath = new Path(dest)
 

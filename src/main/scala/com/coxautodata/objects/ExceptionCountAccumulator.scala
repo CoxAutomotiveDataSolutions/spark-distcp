@@ -24,7 +24,7 @@ class ExceptionCountAccumulator extends AccumulatorV2[String, java.util.Map[Stri
 
   override def reset(): Unit = _map.clear()
 
-  def addException(e: Throwable): Unit = add(e.getClass.getName.stripSuffix("$"))
+  def add(e: Throwable): Unit = add(e.getClass.getName.stripSuffix("$"))
 
   override def add(k: String): Unit = {
     add(k, 1)

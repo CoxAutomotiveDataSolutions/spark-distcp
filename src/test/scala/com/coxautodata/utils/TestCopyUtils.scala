@@ -89,7 +89,7 @@ class TestCopyUtils extends TestSpec {
       performCopy(localFileSystem, source, localFileSystem, destPath.toUri, removeExisting = false, ignoreErrors = true, taskAttemptID = 2)
         .getMessage should be(
         s"Source: [${source.getPath.toUri}], Destination: [$destPath], " +
-          s"Type: [FileCopy$$], Result: [Failed: Cannot create file [$destPath] as it already exists]")
+          s"Type: [FileCopy: 1 bytes], Result: [Failed: Cannot create file [$destPath] as it already exists]")
 
     }
 
@@ -193,7 +193,7 @@ class TestCopyUtils extends TestSpec {
 
       //Present at destination, overwrite
       copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(overwrite = true), 1)
-        .copyAction should be(CopyActionResult.Copied)
+        .copyAction should be(CopyActionResult.OverwrittenOrUpdated)
 
       filesAreIdentical(
         source,
@@ -228,7 +228,7 @@ class TestCopyUtils extends TestSpec {
 
       //Present at destination, differing file, update
       copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(update = true), 1)
-        .copyAction should be(CopyActionResult.Copied)
+        .copyAction should be(CopyActionResult.OverwrittenOrUpdated)
 
       filesAreIdentical(
         source,
@@ -254,7 +254,7 @@ class TestCopyUtils extends TestSpec {
       copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(ignoreErrors = true), 1)
         .getMessage should be(
         s"Source: [${source.getPath.toUri}], " +
-          s"Destination: [$destPath], Type: [FileCopy$$], " +
+          s"Destination: [$destPath], Type: [FileCopy: 1 bytes], " +
           s"Result: [Failed: Destination folder [${destPath.getParent}] does not exist]")
 
     }

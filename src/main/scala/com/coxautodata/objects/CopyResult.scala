@@ -5,8 +5,7 @@ import java.net.URI
 /**
   * Result of the DistCP copy used for both logging to a logger and a file.
   */
-trait CopyResult extends DistCPResult {
-}
+trait CopyResult extends DistCPResult
 
 case class FileCopyResult(source: URI, destination: URI, len: Long, copyAction: FileCopyActionResult) extends CopyResult {
   def getMessage: String = s"Source: [$source], Destination: [$destination], Type: [FileCopy: $len bytes], Result: [${copyAction.message}]"
