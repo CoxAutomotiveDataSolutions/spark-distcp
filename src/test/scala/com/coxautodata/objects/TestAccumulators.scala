@@ -54,6 +54,8 @@ class TestAccumulators extends FunSpec with Matchers {
         |java.io.FileNotFoundException: 1""".stripMargin
     )
 
+    spark.stop()
+
   }
 
 }
