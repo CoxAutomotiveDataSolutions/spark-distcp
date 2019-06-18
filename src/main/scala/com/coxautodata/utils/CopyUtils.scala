@@ -4,8 +4,7 @@ import java.io.FileNotFoundException
 import java.net.URI
 
 import com.coxautodata.SparkDistCPOptions
-import com.coxautodata.objects.ActionType.{DirectoryCreate, FileCopy}
-import com.coxautodata.objects.{CopyActionResult, CopyResult, DeleteActionResult, DeleteResult, DistCPResult, Logging, SerializableFileStatus, SingleCopyDefinition}
+import com.coxautodata.objects._
 import org.apache.hadoop.fs._
 import org.apache.hadoop.io.IOUtils
 import org.apache.log4j.Level
@@ -86,31 +85,31 @@ object CopyUtils extends Logging {
   /**
     * Internal create directory function
     */
-  private[utils] def createDirectory(destFS: FileSystem, definition: SingleCopyDefinition, options: SparkDistCPOptions): CopyResult = {
+  private[utils] def createDirectory(destFS: FileSystem, definition: SingleCopyDefinition, options: SparkDistCPOptions): DirectoryCopyResult = {
     val destPath = new Path(definition.destination)
     if (destFS.exists(destPath)) {
-      CopyResult(definition.source.getPath.toUri, definition.destination, DirectoryCreate, CopyActionResult.SkippedAlreadyExists)
+      DirectoryCopyResult(definition.source.getPath.toUri, definition.destination, CopyActionResult.SkippedAlreadyExists)
     }
     else if (options.dryRun) {
-      CopyResult(definition.source.getPath.toUri, definition.destination, DirectoryCreate, CopyActionResult.SkippedDryRun)
+      DirectoryCopyResult(definition.source.getPath.toUri, definition.destination, CopyActionResult.SkippedDryRun)
     }
     else {
       val result = Try {
         if (destFS.exists(destPath.getParent)) {
           destFS.mkdirs(destPath)
-          CopyResult(definition.source.getPath.toUri, definition.destination, DirectoryCreate, CopyActionResult.Created)
+          DirectoryCopyResult(definition.source.getPath.toUri, definition.destination, CopyActionResult.Created)
         }
         else throw new FileNotFoundException(s"Parent folder [${destPath.getParent}] does not exist.")
       }
         .recover {
           case _: FileAlreadyExistsException =>
-            CopyResult(definition.source.getPath.toUri, definition.destination, DirectoryCreate, CopyActionResult.SkippedAlreadyExists)
+            DirectoryCopyResult(definition.source.getPath.toUri, definition.destination, CopyActionResult.SkippedAlreadyExists)
         }
       result match {
         case Success(v) => v
         case Failure(e) if options.ignoreErrors =>
           logError(s"Exception whilst creating directory [${definition.destination}]", e)
-          CopyResult(definition.source.getPath.toUri, definition.destination, DirectoryCreate, CopyActionResult.Failed(e))
+          DirectoryCopyResult(definition.source.getPath.toUri, definition.destination, CopyActionResult.Failed(e))
         case Failure(e) =>
           throw e
       }
@@ -120,20 +119,20 @@ object CopyUtils extends Logging {
   /**
     * Internal copy file function
     */
-  private[utils] def copyFile(sourceFS: FileSystem, destFS: FileSystem, definition: SingleCopyDefinition, options: SparkDistCPOptions, taskAttemptID: Long): CopyResult = {
+  private[utils] def copyFile(sourceFS: FileSystem, destFS: FileSystem, definition: SingleCopyDefinition, options: SparkDistCPOptions, taskAttemptID: Long): FileCopyResult = {
     val destPath = new Path(definition.destination)
     Try(destFS.getFileStatus(destPath)) match {
       case Failure(_: FileNotFoundException) if options.dryRun =>
-        CopyResult(definition.source.getPath.toUri, definition.destination, FileCopy, CopyActionResult.SkippedDryRun)
+        FileCopyResult(definition.source.getPath.toUri, definition.destination, definition.source.len, CopyActionResult.SkippedDryRun)
       case Failure(_: FileNotFoundException) =>
         performCopy(sourceFS, definition.source, destFS, definition.destination, removeExisting = false, ignoreErrors = options.ignoreErrors, taskAttemptID)
       case Failure(e) if options.ignoreErrors =>
         logError(s"Exception whilst getting destination file information [${definition.destination}]", e)
-        CopyResult(definition.source.getPath.toUri, definition.destination, FileCopy, CopyActionResult.Failed(e))
+        FileCopyResult(definition.source.getPath.toUri, definition.destination, definition.source.len, CopyActionResult.Failed(e))
       case Failure(e) =>
         throw e
       case Success(_) if options.overwrite && options.dryRun =>
-        CopyResult(definition.source.getPath.toUri, definition.destination, FileCopy, CopyActionResult.SkippedDryRun)
+        FileCopyResult(definition.source.getPath.toUri, definition.destination, definition.source.len, CopyActionResult.SkippedDryRun)
       case Success(_) if options.overwrite =>
         performCopy(sourceFS, definition.source, destFS, definition.destination, removeExisting = true, ignoreErrors = options.ignoreErrors, taskAttemptID)
       case Success(d) if options.update =>
@@ -148,18 +147,18 @@ object CopyUtils extends Logging {
         match {
           case Failure(e) if options.ignoreErrors =>
             logError(s"Exception whilst getting source and destination checksum: source [${definition.source.getPath}] destination [${definition.destination}", e)
-            CopyResult(definition.source.getPath.toUri, definition.destination, FileCopy, CopyActionResult.Failed(e))
+            FileCopyResult(definition.source.getPath.toUri, definition.destination, definition.source.len, CopyActionResult.Failed(e))
           case Failure(e) =>
             throw e
           case Success(true) =>
-            CopyResult(definition.source.getPath.toUri, definition.destination, FileCopy, CopyActionResult.SkippedIdenticalFileAlreadyExists)
+            FileCopyResult(definition.source.getPath.toUri, definition.destination, definition.source.len, CopyActionResult.SkippedIdenticalFileAlreadyExists)
           case Success(false) if options.dryRun =>
-            CopyResult(definition.source.getPath.toUri, definition.destination, FileCopy, CopyActionResult.SkippedDryRun)
+            FileCopyResult(definition.source.getPath.toUri, definition.destination, definition.source.len, CopyActionResult.SkippedDryRun)
           case Success(false) =>
             performCopy(sourceFS, definition.source, destFS, definition.destination, removeExisting = true, ignoreErrors = options.ignoreErrors, taskAttemptID)
         }
       case Success(_) =>
-        CopyResult(definition.source.getPath.toUri, definition.destination, FileCopy, CopyActionResult.SkippedAlreadyExists)
+        FileCopyResult(definition.source.getPath.toUri, definition.destination, definition.source.len, CopyActionResult.SkippedAlreadyExists)
     }
   }
 
@@ -191,8 +190,9 @@ object CopyUtils extends Logging {
 
   /**
     * Internal copy function
+    * Only pass in true for removeExisting if the file actually exists
     */
-  def performCopy(sourceFS: FileSystem, sourceFile: SerializableFileStatus, destFS: FileSystem, dest: URI, removeExisting: Boolean, ignoreErrors: Boolean, taskAttemptID: Long): CopyResult = {
+  def performCopy(sourceFS: FileSystem, sourceFile: SerializableFileStatus, destFS: FileSystem, dest: URI, removeExisting: Boolean, ignoreErrors: Boolean, taskAttemptID: Long): FileCopyResult = {
 
     val destPath = new Path(dest)
 
@@ -227,11 +227,13 @@ object CopyUtils extends Logging {
         val res = destFS.rename(tempPath, destPath)
         if (!res) throw new RuntimeException(s"Failed to rename temporary file [$tempPath] to [$destPath]")
     } match {
+      case Success(_) if removeExisting =>
+        FileCopyResult(sourceFile.getPath.toUri, dest, sourceFile.len, CopyActionResult.OverwrittenOrUpdated)
       case Success(_) =>
-        CopyResult(sourceFile.getPath.toUri, dest, FileCopy, CopyActionResult.Copied)
+        FileCopyResult(sourceFile.getPath.toUri, dest, sourceFile.len, CopyActionResult.Copied)
       case Failure(e) if ignoreErrors =>
         logError(s"Failed to copy file [${sourceFile.getPath}] to [$destPath]", e)
-        CopyResult(sourceFile.getPath.toUri, dest, FileCopy, CopyActionResult.Failed(e))
+        FileCopyResult(sourceFile.getPath.toUri, dest, sourceFile.len, CopyActionResult.Failed(e))
       case Failure(e) =>
         throw e
     }

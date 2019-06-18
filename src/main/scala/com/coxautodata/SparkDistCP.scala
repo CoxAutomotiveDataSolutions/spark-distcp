@@ -2,7 +2,7 @@ package com.coxautodata
 
 import java.net.URI
 
-import com.coxautodata.objects.{ConfigSerDeser, CopyDefinitionWithDependencies, CopyPartitioner, DistCPResult, FileSystemObjectCacher, Logging}
+import com.coxautodata.objects._
 import com.coxautodata.utils.{CopyUtils, FileListUtils, PathUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs._
@@ -88,12 +88,14 @@ object SparkDistCP extends Logging {
 
     val toCopy = joined.collect { case (_, (Some(s), _)) => s }
 
-    val copyResult: RDD[DistCPResult] = doCopy(toCopy, options)
+    val accumulators = new Accumulators(sparkSession)
+
+    val copyResult: RDD[DistCPResult] = doCopy(toCopy, accumulators, options)
 
     val deleteResult: RDD[DistCPResult] = {
       if (options.delete) {
         val toDelete = joined.collect { case (d, (None, _)) => d }
-        doDelete(toDelete, options)
+        doDelete(toDelete, accumulators, options)
       } else {
         sparkSession.sparkContext.emptyRDD[DistCPResult]
       }
@@ -106,12 +108,14 @@ object SparkDistCP extends Logging {
       case Some(f) => allResults.repartition(1).map(_.getMessage).toDS().write.mode(SaveMode.Append).csv(f.toString)
     }
 
+    logInfo("SparkDistCP Run Statistics\n" + accumulators.getOutputText)
+
   }
 
   /**
     * Perform the copy portion of the DistCP
     */
-  private[coxautodata] def doCopy(sourceRDD: RDD[CopyDefinitionWithDependencies], options: SparkDistCPOptions): RDD[DistCPResult] = {
+  private[coxautodata] def doCopy(sourceRDD: RDD[CopyDefinitionWithDependencies], accumulators: Accumulators, options: SparkDistCPOptions): RDD[DistCPResult] = {
 
     val serConfig = new ConfigSerDeser(sourceRDD.sparkContext.hadoopConfiguration)
     batchAndPartitionFiles(sourceRDD, options.maxFilesPerTask, options.maxBytesPerTask)
@@ -123,16 +127,20 @@ object SparkDistCP extends Logging {
 
           iterator
             .flatMap(_._2.getAllCopyDefinitions)
-            .collectMapWithEmptyCollection((d, z) => z.contains(d), d => CopyUtils.handleCopy(fsCache.getOrCreate(d.source.uri), fsCache.getOrCreate(d.destination), d, options, attemptID))
-
+            .collectMapWithEmptyCollection((d, z) => z.contains(d),
+              d => {
+                val r = CopyUtils.handleCopy(fsCache.getOrCreate(d.source.uri), fsCache.getOrCreate(d.destination), d, options, attemptID)
+                accumulators.handleResult(r)
+                r
+              }
+            )
       }
-
   }
 
   /**
     * Perform the delete from destination portion of the DistCP
     */
-  private[coxautodata] def doDelete(destRDD: RDD[URI], options: SparkDistCPOptions): RDD[DistCPResult] = {
+  private[coxautodata] def doDelete(destRDD: RDD[URI], accumulators: Accumulators, options: SparkDistCPOptions): RDD[DistCPResult] = {
     val serConfig = new ConfigSerDeser(destRDD.sparkContext.hadoopConfiguration)
     val count = destRDD.count()
     destRDD
@@ -142,10 +150,14 @@ object SparkDistCP extends Logging {
           val hadoopConfiguration = serConfig.get()
           val fsCache = new FileSystemObjectCacher(hadoopConfiguration)
           iterator
-            .collectMapWithEmptyCollection((d, z) => z.exists(p => PathUtils.uriIsChild(p, d)), d => CopyUtils.handleDelete(fsCache.getOrCreate(d), d, options))
-
+            .collectMapWithEmptyCollection((d, z) => z.exists(p => PathUtils.uriIsChild(p, d)),
+              d => {
+                val r = CopyUtils.handleDelete(fsCache.getOrCreate(d), d, options)
+                accumulators.handleResult(r)
+                r
+              }
+            )
       }
-
   }
 
   /**
