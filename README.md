@@ -87,7 +87,6 @@ SparkDistCP is not a complete like-for-like reimplementation of Hadoop DistCP an
 * No option to skip CRC check
 * When using the delete option files are **not** moved into trash
 * The log file in no way resembles that created by Hadoop DistCP
-* There is currently no statistics collected during the copy (e.g. bytes transferred)
 
 ## How can I contribute to SparkDistCP?
 
