@@ -1,10 +1,8 @@
 package com.coxautodata
 
-import com.coxautodata.objects.{CopyDefinitionWithDependencies, Directory, File, SerializableFileStatus}
 import com.coxautodata.SparkDistCP._
 import com.coxautodata.objects.{CopyDefinitionWithDependencies, Directory, File, SerializableFileStatus}
 import com.coxautodata.utils.FileListUtils.listFiles
-import com.coxautodata.utils.FileListing
 import com.coxautodata.utils.FileListing
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.SparkSession
@@ -699,6 +697,26 @@ class TestSparkDistCP extends TestSpec {
 
       spark.stop()
 
+    }
+
+    it("provide an empty source path list") {
+      val spark = SparkSession.builder().master("local[*]").getOrCreate()
+
+      intercept[java.lang.AssertionError] {
+        SparkDistCP.run(spark, Seq.empty, new Path("test"), SparkDistCPOptions())
+      }.getMessage should be("assertion failed: At least one source path must be given")
+
+      spark.stop()
+    }
+
+    it("provide an incorrect options configuration") {
+      val spark = SparkSession.builder().master("local[*]").getOrCreate()
+
+      intercept[java.lang.AssertionError] {
+        SparkDistCP.run(spark, Seq(new Path("src")), new Path("dest"), SparkDistCPOptions(update = true, overwrite = true))
+      }.getMessage should be("assertion failed: Both update and overwrite cannot be specified")
+
+      spark.stop()
     }
 
   }

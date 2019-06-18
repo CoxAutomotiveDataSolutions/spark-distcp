@@ -3,6 +3,7 @@ package com.coxautodata
 import java.net.URI
 
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 
 object OptionsParsing {
 
@@ -71,6 +72,7 @@ object OptionsParsing {
 
     parser.parse(args, Config()) match {
       case Some(config) =>
+        config.options.validateOptions()
         config
       case _ =>
         throw new RuntimeException("Failed to parse arguments")
@@ -83,6 +85,13 @@ case class Config(options: SparkDistCPOptions = SparkDistCPOptions(), URIs: Seq[
 
   def copyOptions(f: SparkDistCPOptions => SparkDistCPOptions): Config = {
     this.copy(options = f(options))
+  }
+
+  def sourceAndDestPaths: (Seq[Path], Path) = {
+    URIs.reverse match {
+      case d :: s :: ts => ((s :: ts).reverse.map(u => new Path(u)), new Path(d))
+      case _ => throw new RuntimeException("Incorrect number of URIs")
+    }
   }
 
 }
