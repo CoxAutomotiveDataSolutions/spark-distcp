@@ -26,7 +26,7 @@ lazy val compilerOptions = Seq(
   "utf8"
 )
 
-lazy val hello = (project in file("."))
+lazy val sparkdistcp = (project in file("."))
   .settings(
     name := "spark-distcp",
     fork in Test := true,
