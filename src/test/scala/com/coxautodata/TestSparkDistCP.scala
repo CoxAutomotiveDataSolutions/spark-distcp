@@ -1,7 +1,7 @@
 package com.coxautodata
 
 import com.coxautodata.SparkDistCP._
-import com.coxautodata.objects.{CopyDefinitionWithDependencies, Directory, File, SerializableFileStatus}
+import com.coxautodata.objects.{CopyDefinitionWithDependencies, CopyPartitioner, Directory, File, SerializableFileStatus}
 import com.coxautodata.utils.FileListUtils.listFiles
 import com.coxautodata.utils.FileListing
 import org.apache.hadoop.fs.Path
@@ -114,6 +114,29 @@ class TestSparkDistCP extends TestSpec {
         ((3, 0, 3), "/file3")
       )
 
+
+      spark.stop()
+    }
+
+    it("produce predictable batching") {
+      val spark = new SparkContext(new SparkConf().setAppName("test").setMaster("local[1]"))
+
+      val in = List(
+         CopyDefinitionWithDependencies(SerializableFileStatus(new Path("/1").toUri, 1500, File), new Path("/dest/file1").toUri, Seq.empty),
+        CopyDefinitionWithDependencies(SerializableFileStatus(new Path("/2").toUri, 20, File), new Path("/dest/file2").toUri, Seq.empty),
+        CopyDefinitionWithDependencies(SerializableFileStatus(new Path("/3").toUri, 500, File), new Path("/dest/file3").toUri, Seq.empty)
+      )
+
+      val inRDD = spark
+        .parallelize(in)
+        .repartition(1)
+
+
+      val unsorted = CopyPartitioner(inRDD.mapPartitionsWithIndex(generateBatchedFileKeys( 3, 2000)))
+
+      val sorted = CopyPartitioner(inRDD.sortBy(_.source.uri.toString).mapPartitionsWithIndex(generateBatchedFileKeys( 3, 2000)))
+
+      unsorted.indexesAsMap should be (sorted.indexesAsMap)
 
       spark.stop()
     }

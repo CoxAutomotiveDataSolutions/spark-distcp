@@ -190,7 +190,7 @@ object SparkDistCP extends Logging {
   private[coxautodata] def batchAndPartitionFiles(rdd: RDD[CopyDefinitionWithDependencies], maxFilesPerTask: Int, maxBytesPerTask: Long): RDD[((Int, Int), CopyDefinitionWithDependencies)] = {
     val batched = rdd.mapPartitionsWithIndex(generateBatchedFileKeys(maxFilesPerTask, maxBytesPerTask))
 
-    batched.partitionBy(CopyPartitioner(batched.map(_._1).reduceByKey(_ max _).collect()))
+    batched.partitionBy(CopyPartitioner(batched))
   }
 
   /**

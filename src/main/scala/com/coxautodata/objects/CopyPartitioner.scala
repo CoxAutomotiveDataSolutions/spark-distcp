@@ -1,6 +1,7 @@
 package com.coxautodata.objects
 
 import org.apache.spark.Partitioner
+import org.apache.spark.rdd.RDD
 
 /**
   * Custom partitioner based on the indexes array containing (partitionid, number of batches within partition)
@@ -8,7 +9,7 @@ import org.apache.spark.Partitioner
   */
 case class CopyPartitioner(indexes: Array[(Int, Int)]) extends Partitioner {
 
-  private val indexesAsMap = indexes.toMap
+  val indexesAsMap: Map[Int, Int] = indexes.toMap
 
   override val numPartitions: Int = indexes.map(_._2).sum + indexes.length
 
@@ -24,4 +25,8 @@ case class CopyPartitioner(indexes: Array[(Int, Int)]) extends Partitioner {
     case u => throw new RuntimeException(s"Partitioned does not support key [$u]. Must be (Int, Int).")
   }
 
+}
+
+object CopyPartitioner {
+  def apply(rdd: RDD[((Int, Int), CopyDefinitionWithDependencies)]): CopyPartitioner = new CopyPartitioner(rdd.map(_._1).reduceByKey(_ max _).collect())
 }
