@@ -1,7 +1,7 @@
 package com.coxautodata
 
 import com.coxautodata.SparkDistCP._
-import com.coxautodata.objects.{CopyDefinitionWithDependencies, Directory, File, SerializableFileStatus}
+import com.coxautodata.objects.{CopyDefinitionWithDependencies, CopyPartitioner, Directory, File, SerializableFileStatus}
 import com.coxautodata.utils.FileListUtils.listFiles
 import com.coxautodata.utils.FileListing
 import org.apache.hadoop.fs.Path
@@ -67,12 +67,12 @@ class TestSparkDistCP extends TestSpec {
               case ((pp, i), d) => ((p, pp, i), d.source.getPath.toString)
             }
         } should contain theSameElementsAs Seq(
-        ((0, 0, 0), "/one"),
-        ((2, 1, 0), "/two"),
-        ((0, 0, 0), "/three"),
-        ((2, 1, 0), "/file1"),
-        ((1, 0, 1), "/file2"),
-        ((3, 1, 1), "/file3")
+        ((0, 0, 0), "/file1"),
+        ((0, 0, 0), "/file3"),
+        ((1, 1, 0), "/file2"),
+        ((1, 1, 0), "/one"),
+        ((2, 1, 1), "/three"),
+        ((2, 1, 1), "/two")
       )
 
 
@@ -106,14 +106,37 @@ class TestSparkDistCP extends TestSpec {
               case ((pp, i), d) => ((p, pp, i), d.source.getPath.toString)
             }
         } should contain theSameElementsAs Seq(
-        ((0, 0, 0), "/one"),
-        ((0, 0, 0), "/two"),
-        ((1, 0, 1), "/three"),
-        ((1, 0, 1), "/file1"),
-        ((2, 0, 2), "/file2"),
-        ((3, 0, 3), "/file3")
+        ((0, 0, 0), "/file1"),
+        ((0, 0, 0), "/file2"),
+        ((1, 0, 1), "/file3"),
+        ((1, 0, 1), "/one"),
+        ((2, 0, 2), "/three"),
+        ((2, 0, 2), "/two")
       )
 
+
+      spark.stop()
+    }
+
+    it("produce predictable batching") {
+      val spark = new SparkContext(new SparkConf().setAppName("test").setMaster("local[1]"))
+
+      val in = List(
+         CopyDefinitionWithDependencies(SerializableFileStatus(new Path("/1").toUri, 1, File), new Path("/dest/file1").toUri, Seq.empty),
+        CopyDefinitionWithDependencies(SerializableFileStatus(new Path("/3").toUri, 3000, File), new Path("/dest/file3").toUri, Seq.empty),
+        CopyDefinitionWithDependencies(SerializableFileStatus(new Path("/2").toUri, 1, File), new Path("/dest/file2").toUri, Seq.empty)
+      )
+
+      val inRDD = spark
+        .parallelize(in)
+        .repartition(1)
+
+
+      val unsorted = batchAndPartitionFiles(inRDD, 3, 2000).partitioner.get.asInstanceOf[CopyPartitioner]
+
+      val sorted = batchAndPartitionFiles(inRDD.sortBy(_.source.uri.toString), 3, 2000).partitioner.get.asInstanceOf[CopyPartitioner]
+
+      unsorted.indexesAsMap should be (sorted.indexesAsMap)
 
       spark.stop()
     }

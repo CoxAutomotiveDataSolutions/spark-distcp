@@ -30,9 +30,9 @@ class TestCopyPartitioner extends FunSpec with Matchers {
         partitioner.getPartition((4, 1))
       }.getMessage should be("Key partition 4 of key [(4, 1)] was not found in the indexes [0, 1, 2, 3].")
 
-      intercept[RuntimeException] {
-        partitioner.getPartition((2, 1))
-      }.getMessage should be("Key index 1 of key [(2, 1)] is outside range [<=0].")
+      partitioner.getPartition((2, 0)) should be(5)
+
+      partitioner.getPartition((2, 1)) should be(5)
 
     }
 
