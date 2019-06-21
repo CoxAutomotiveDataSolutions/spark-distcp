@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.1 - 2019-06-21
+
+### Fixed
+- Files within a partition are now batched in a consistent way using sorting
+- Jobs no longer fail if batching keys are incorrect
+
 ## v0.2 - 2019-06-18
 
 ### Added
