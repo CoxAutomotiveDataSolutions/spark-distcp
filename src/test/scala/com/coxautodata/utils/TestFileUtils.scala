@@ -37,6 +37,9 @@ class TestFileUtils extends FunSpec with Matchers {
     FileUtils.byteCountToDisplaySize(BigInteger.valueOf(Character.MAX_VALUE)) should be("63.9 KB (65535 bytes)")
     FileUtils.byteCountToDisplaySize(BigInteger.valueOf(java.lang.Short.MAX_VALUE)) should be("31.9 KB (32767 bytes)")
     FileUtils.byteCountToDisplaySize(BigInteger.valueOf(Integer.MAX_VALUE)) should be("1.99 GB (2147483647 bytes)")
+    // Other Values
+    FileUtils.byteCountToDisplaySize(105013122725L) should be("97.8 GB (105013122725 bytes)")
+    FileUtils.byteCountToDisplaySize(644353293312L) should be("600 GB (644353293312 bytes)")
 
   }
 
