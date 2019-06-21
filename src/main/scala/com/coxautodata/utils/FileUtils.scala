@@ -43,7 +43,7 @@ object FileUtils {
         else (decimal, count + 1, agg)
     }
 
-    if (isDecimal) sizeS.reverse.dropWhile(c => c == '0' || c == '.').reverse
+    if (isDecimal) sizeS.reverse.dropWhile(c => c == '0').reverse.stripSuffix(".")
     else sizeS
 
   }
