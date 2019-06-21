@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.2 - 2019-06-21
+
+### Fixed
+- Human readable byte representation sometimes trimming too many digits
+
 ## v0.2.1 - 2019-06-21
 
 ### Fixed
