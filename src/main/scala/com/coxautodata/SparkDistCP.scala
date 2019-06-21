@@ -6,9 +6,9 @@ import com.coxautodata.objects._
 import com.coxautodata.utils.{CopyUtils, FileListUtils, PathUtils}
 import org.apache.hadoop.fs._
 import org.apache.log4j.Level
-import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.{HashPartitioner, TaskContext}
 
 /**
   * Spark-based DistCp application.
@@ -188,7 +188,9 @@ object SparkDistCP extends Logging {
     * and repartition the RDD so files in the same batches are in the same partitions
     */
   private[coxautodata] def batchAndPartitionFiles(rdd: RDD[CopyDefinitionWithDependencies], maxFilesPerTask: Int, maxBytesPerTask: Long): RDD[((Int, Int), CopyDefinitionWithDependencies)] = {
-    val batched = rdd.mapPartitionsWithIndex(generateBatchedFileKeys(maxFilesPerTask, maxBytesPerTask))
+    val partitioner = rdd.partitioner.getOrElse(new HashPartitioner(rdd.partitions.length))
+    val sorted = rdd.map(v => (v.source.uri.toString, v)).repartitionAndSortWithinPartitions(partitioner).map(_._2)
+    val batched = sorted.mapPartitionsWithIndex(generateBatchedFileKeys(maxFilesPerTask, maxBytesPerTask)) //sorted
 
     batched.partitionBy(CopyPartitioner(batched))
   }
