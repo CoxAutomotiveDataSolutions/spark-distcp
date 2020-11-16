@@ -4,9 +4,10 @@ import java.net.URI
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
-class TestOptionsParsing extends FunSpec with Matchers {
+class TestOptionsParsing extends AnyFunSpec with Matchers {
 
   describe("Successful parsing") {
 

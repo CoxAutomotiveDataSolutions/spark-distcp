@@ -5,9 +5,10 @@ import java.net.URI
 import PathUtils._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
-class TestPathUtils extends FunSpec with Matchers {
+class TestPathUtils extends AnyFunSpec with Matchers {
 
   describe("pathToQualifiedPath") {
 

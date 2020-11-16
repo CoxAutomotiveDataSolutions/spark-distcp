@@ -3,9 +3,10 @@ package com.coxautodata.objects
 import java.io.FileNotFoundException
 
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
-class TestAccumulators extends FunSpec with Matchers {
+class TestAccumulators extends AnyFunSpec with Matchers {
 
   it("test all accumulator conditions") {
 

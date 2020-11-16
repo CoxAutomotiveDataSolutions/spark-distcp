@@ -78,7 +78,6 @@ object OptionsParsing {
         throw new RuntimeException("Failed to parse arguments")
     }
   }
-
 }
 
 case class Config(options: SparkDistCPOptions = SparkDistCPOptions(), URIs: Seq[URI] = Seq.empty) {
