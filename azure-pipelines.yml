@@ -5,5 +5,5 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-  - script: sbt compile
+  - script: sbt ci
     displayName: "Run sbt tests"
