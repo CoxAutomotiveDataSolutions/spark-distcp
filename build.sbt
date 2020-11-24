@@ -23,6 +23,8 @@ lazy val compilerOptions = Seq(
   "utf8"
 )
 
+addCommandAlias("ci", ";+compile ;+test")
+
 lazy val sparkdistcp = (project in file("."))
   .settings(
     name := "spark-distcp",
