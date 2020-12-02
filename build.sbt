@@ -7,7 +7,7 @@ lazy val scala212 = Dependencies.scala212
 lazy val scala211 = Dependencies.scala211
 lazy val supportedScalaVersions = List(scala212, scala211)
 
-ThisBuild / scalaVersion := scala211
+ThisBuild / scalaVersion := scala212
 ThisBuild / organization := "com.coxautodata"
 
 lazy val compilerOptions = Seq(

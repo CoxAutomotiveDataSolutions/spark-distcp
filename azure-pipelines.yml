@@ -5,5 +5,29 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
+  - task: Cache@2
+    inputs:
+      key: 'sbt | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
+      restoreKeys: |
+        sbt | $(Agent.OS) | **/build.sbt
+        sbt | $(Agent.OS)
+        sbt
+      path: $(Pipeline.Workspace)/.ivy2/cache
+  - task: Cache@2
+    inputs:
+      key: 'sbt | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
+      restoreKeys: |
+        sbt | $(Agent.OS) | **/build.sbt
+        sbt | $(Agent.OS)
+        sbt
+      path: $(Pipeline.Workspace)/.cache/coursier
+  - task: Cache@2
+    inputs:
+      key: 'sbt | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
+      restoreKeys: |
+        sbt | $(Agent.OS) | **/build.sbt
+        sbt | $(Agent.OS)
+        sbt
+      path: $(Pipeline.Workspace)/.sbt/boot
   - script: sbt ci
     displayName: "Run sbt tests"
