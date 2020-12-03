@@ -13,19 +13,19 @@ variables:
 steps:
   - task: Cache@2
     inputs:
-      key: 'sbt | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
+      key: 'sbt | ivy2 | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
       restoreKeys: |
-        sbt | $(Agent.OS) | **/build.sbt
-        sbt | $(Agent.OS)
-        sbt
+        sbt | ivy2 | $(Agent.OS) | **/build.sbt
+        sbt | ivy2 | $(Agent.OS)
+        sbt | ivy2
       path: $(Pipeline.Workspace)/.ivy2
   - task: Cache@2
     inputs:
-      key: 'sbt | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
+      key: 'sbt | coursier | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
       restoreKeys: |
-        sbt | $(Agent.OS) | **/build.sbt
-        sbt | $(Agent.OS)
-        sbt
+        sbt | coursier | $(Agent.OS) | **/build.sbt
+        sbt | coursier | $(Agent.OS)
+        sbt | coursier
       path: $(Pipeline.Workspace)/.coursier
   - script: sbt ci
     displayName: "Run sbt tests"
