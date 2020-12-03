@@ -9,6 +9,8 @@ variables:
     value: $(Pipeline.Workspace)/.coursier
   - name: IVY_CACHE_FOLDER
     value: $(Pipeline.Workspace)/.ivy2
+  - name: SBT_OPTS
+    value: -Dsbt.boot.directory=$(Pipeline.Workspace)/.sbt/boot -Dsbt.coursier.home=$(Pipeline.Workspace)/.coursier
 
 steps:
   - task: Cache@2
@@ -26,6 +28,14 @@ steps:
         sbt | coursier | $(Agent.OS) | **/build.sbt
         sbt | coursier | $(Agent.OS)
         sbt | coursier
+      path: $(Pipeline.Workspace)/.coursier 
+  - task: Cache@2
+    inputs:
+      key: 'sbt | boot | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
+      restoreKeys: |
+        sbt | boot | $(Agent.OS) | **/build.sbt
+        sbt | boot | $(Agent.OS)
+        sbt | boot
       path: $(Pipeline.Workspace)/.coursier 
   - script: |
       mkdir -p $(Pipeline.Workspace)/.ivy2
