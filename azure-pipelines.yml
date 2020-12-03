@@ -26,6 +26,8 @@ steps:
         sbt | coursier | $(Agent.OS) | **/build.sbt
         sbt | coursier | $(Agent.OS)
         sbt | coursier
-      path: $(Pipeline.Workspace)/.coursier
-  - script: sbt ci
+      path: $(Pipeline.Workspace)/.coursier 
+  - script: |
+      mkdir -p $(Pipeline.Workspace)/.ivy2
+      sbt ci
     displayName: "Run sbt tests"
