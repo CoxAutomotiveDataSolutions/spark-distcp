@@ -36,7 +36,7 @@ steps:
         sbt | boot | $(Agent.OS) | **/build.sbt
         sbt | boot | $(Agent.OS)
         sbt | boot
-      path: $(Pipeline.Workspace)/.coursier 
+      path: $(Pipeline.Workspace)/.sbt/boot
   - script: |
       mkdir -p $(Pipeline.Workspace)/.ivy2
       sbt ci
