@@ -4,6 +4,12 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  - name: COURSIER_CACHE
+    value: $(Pipeline.Workspace)/.coursier
+  - name: IVY_CACHE_FOLDER
+    value: $(Pipeline.Workspace)/.ivy2
+
 steps:
   - task: Cache@2
     inputs:
@@ -12,7 +18,7 @@ steps:
         sbt | $(Agent.OS) | **/build.sbt
         sbt | $(Agent.OS)
         sbt
-      path: $(Agent.HomeDirectory)/.ivy2/cache
+      path: $(Pipeline.Workspace)/.ivy2
   - task: Cache@2
     inputs:
       key: 'sbt | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
@@ -20,14 +26,6 @@ steps:
         sbt | $(Agent.OS) | **/build.sbt
         sbt | $(Agent.OS)
         sbt
-      path: $(Agent.HomeDirectory)/.cache/coursier
-  - task: Cache@2
-    inputs:
-      key: 'sbt | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
-      restoreKeys: |
-        sbt | $(Agent.OS) | **/build.sbt
-        sbt | $(Agent.OS)
-        sbt
-      path: $(Agent.HomeDirectory)/.sbt/boot
+      path: $(Pipeline.Workspace)/.coursier
   - script: sbt ci
     displayName: "Run sbt tests"
