@@ -45,6 +45,7 @@ jobs:
         SCALA_VERSION: $(SCALAVERSION)
 - job: build
   displayName: Run sbt cross build
+  dependsOn: [tests]
   steps:
     - task: Cache@2
       inputs:
@@ -67,6 +68,11 @@ jobs:
           sbt | boot | **/build.sbt
           sbt | boot
         path: $(Pipeline.Workspace)/.sbt/boot
+    - task: JavaToolInstaller@0
+      inputs:
+        versionSpec: '8'
+        jdkArchitectureOption: 'x64'
+        jdkSourceOption: 'PreInstalled'
     - script: |
         mkdir -p $(Pipeline.Workspace)/.ivy2
         sbt ci
