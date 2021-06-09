@@ -28,7 +28,7 @@ addCommandAlias("ci", ";+compile ;+test")
 lazy val sparkdistcp = (project in file("."))
   .settings(
     name := "spark-distcp",
-    fork in Test := true,
+    Test / fork := true,
     scalacOptions ++= compilerOptions,
     crossScalaVersions := supportedScalaVersions,
     libraryDependencies += test,
@@ -74,7 +74,7 @@ lazy val sparkdistcp = (project in file("."))
         "alex.bush@coxauto.co.uk"
       )
     ),
-    publishArtifact in Test := true,
+    Test / publishArtifact := true,
     publishConfiguration := publishConfiguration.value
       .withOverwrite(isSnapshot.value),
     publishLocalConfiguration := publishLocalConfiguration.value

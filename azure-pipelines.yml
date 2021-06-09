@@ -12,32 +12,61 @@ variables:
   - name: SBT_OPTS
     value: -Dsbt.boot.directory=$(Pipeline.Workspace)/.sbt/boot -Dsbt.coursier.home=$(Pipeline.Workspace)/.coursier
 
-steps:
-  - task: Cache@2
-    inputs:
-      key: 'sbt | ivy2 | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
-      restoreKeys: |
-        sbt | ivy2 | $(Agent.OS) | **/build.sbt
-        sbt | ivy2 | $(Agent.OS)
-        sbt | ivy2
-      path: $(Pipeline.Workspace)/.ivy2
-  - task: Cache@2
-    inputs:
-      key: 'sbt | coursier | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
-      restoreKeys: |
-        sbt | coursier | $(Agent.OS) | **/build.sbt
-        sbt | coursier | $(Agent.OS)
-        sbt | coursier
-      path: $(Pipeline.Workspace)/.coursier 
-  - task: Cache@2
-    inputs:
-      key: 'sbt | boot | $(Agent.OS) | **/build.sbt | project/Dependencies.scala'
-      restoreKeys: |
-        sbt | boot | $(Agent.OS) | **/build.sbt
-        sbt | boot | $(Agent.OS)
-        sbt | boot
-      path: $(Pipeline.Workspace)/.sbt/boot
-  - script: |
-      mkdir -p $(Pipeline.Workspace)/.ivy2
-      sbt ci
-    displayName: "Run sbt tests"
+jobs:
+- job: tests
+  displayName: Test multiple spark versions
+  matrix:
+    Spark3012:
+      SPARKVERSION: '3.0.2'
+      SCALAVERSION: '2.12.14'
+    Spark3112:
+      SPARKVERSION: '3.1.2'
+      SCALAVERSION: '2.12.14'
+    Spark24711:
+      SPARKVERSION: '2.4.7'
+      SCALAVERSION: '2.11.12'
+    Spark24511:
+      SPARKVERSION: '2.4.5'
+      SCALAVERSION: '2.11.12'
+    maxParallel: 4
+  steps:
+    - task: JavaToolInstaller@0
+      inputs:
+        versionSpec: '8'
+        jdkArchitectureOption: 'x64'
+        jdkSourceOption: 'PreInstalled'
+    - script: |
+        echo Scala Version: $SCALA_VERSION
+        echo Spark Version: $SPARK_VERSION
+        sbt '; compile ; test'
+      env:
+        SPARK_VERSION: $(SPARKVERSION)
+        SCALA_VERSION: $(SCALAVERSION)
+- job: build
+  displayName: Run sbt cross build
+  steps:
+    - task: Cache@2
+      inputs:
+        key: 'sbt | ivy2 | **/build.sbt | project/Dependencies.scala'
+        restoreKeys: |
+          sbt | ivy2 | **/build.sbt
+          sbt | ivy2
+        path: $(Pipeline.Workspace)/.ivy2
+    - task: Cache@2
+      inputs:
+        key: 'sbt | coursier | **/build.sbt | project/Dependencies.scala'
+        restoreKeys: |
+          sbt | coursier | **/build.sbt
+          sbt | coursier
+        path: $(Pipeline.Workspace)/.coursier
+    - task: Cache@2
+      inputs:
+        key: 'sbt | boot | **/build.sbt | project/Dependencies.scala'
+        restoreKeys: |
+          sbt | boot | **/build.sbt
+          sbt | boot
+        path: $(Pipeline.Workspace)/.sbt/boot
+    - script: |
+        mkdir -p $(Pipeline.Workspace)/.ivy2
+        sbt ci
+      displayName: "Run sbt tests"
