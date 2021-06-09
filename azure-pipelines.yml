@@ -15,20 +15,21 @@ variables:
 jobs:
 - job: tests
   displayName: Test multiple spark versions
-  matrix:
-    Spark3012:
-      SPARKVERSION: '3.0.2'
-      SCALAVERSION: '2.12.14'
-    Spark3112:
-      SPARKVERSION: '3.1.2'
-      SCALAVERSION: '2.12.14'
-    Spark24711:
-      SPARKVERSION: '2.4.7'
-      SCALAVERSION: '2.11.12'
-    Spark24511:
-      SPARKVERSION: '2.4.5'
-      SCALAVERSION: '2.11.12'
-    maxParallel: 4
+  strategy:
+    matrix:
+      Spark3012:
+        SPARKVERSION: '3.0.2'
+        SCALAVERSION: '2.12.14'
+      Spark3112:
+        SPARKVERSION: '3.1.2'
+        SCALAVERSION: '2.12.14'
+      Spark24711:
+        SPARKVERSION: '2.4.7'
+        SCALAVERSION: '2.11.12'
+      Spark24511:
+        SPARKVERSION: '2.4.5'
+        SCALAVERSION: '2.11.12'
+      maxParallel: 4
   steps:
     - task: JavaToolInstaller@0
       inputs:
