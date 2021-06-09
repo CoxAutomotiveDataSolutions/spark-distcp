@@ -4,9 +4,10 @@ import java.net.URI
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
-class TestOptionsParsing extends FunSpec with Matchers {
+class TestOptionsParsing extends AnyFunSpec with Matchers {
 
   describe("Successful parsing") {
 
@@ -130,9 +131,9 @@ class TestOptionsParsing extends FunSpec with Matchers {
 
     it("single path") {
 
-      intercept[RuntimeException] {
+      intercept[IllegalArgumentException] {
         OptionsParsing.parse(Array("path"), new Configuration())
-      }.getMessage should be("Failed to parse arguments")
+      }.getMessage should be("requirement failed: you must supply two or more paths, representing the source paths and a destination")
 
     }
 

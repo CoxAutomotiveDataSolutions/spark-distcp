@@ -3,11 +3,12 @@ package com.coxautodata.objects
 import java.util
 
 import org.apache.spark.util.AccumulatorV2
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class TestExceptionCountAccumulator extends FunSpec with Matchers {
+class TestExceptionCountAccumulator extends AnyFunSpec with Matchers {
 
   it("test implementation") {
 

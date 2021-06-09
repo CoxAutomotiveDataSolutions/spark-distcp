@@ -1,8 +1,9 @@
 package com.coxautodata.objects
 
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
-class TestCopyPartitioner extends FunSpec with Matchers {
+class TestCopyPartitioner extends AnyFunSpec with Matchers {
 
   describe("getCopyPartitioner") {
 

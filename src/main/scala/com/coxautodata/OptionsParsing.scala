@@ -65,26 +65,29 @@ object OptionsParsing {
 
       arg[String]("[source_path...] <target_path>")
         .unbounded()
-        .minOccurs(2)
         .action((u, c) => c.copy(URIs = c.URIs :+ new URI(u)))
 
     }
 
     parser.parse(args, Config()) match {
       case Some(config) =>
+        config.validateUris()
         config.options.validateOptions()
         config
       case _ =>
         throw new RuntimeException("Failed to parse arguments")
     }
   }
-
 }
 
 case class Config(options: SparkDistCPOptions = SparkDistCPOptions(), URIs: Seq[URI] = Seq.empty) {
 
   def copyOptions(f: SparkDistCPOptions => SparkDistCPOptions): Config = {
     this.copy(options = f(options))
+  }
+
+  def validateUris(): Unit = {
+    require(URIs.length >= 2, "you must supply two or more paths, representing the source paths and a destination")
   }
 
   def sourceAndDestPaths: (Seq[Path], Path) = {

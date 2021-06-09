@@ -8,9 +8,11 @@ import com.coxautodata.utils.FileListing
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, LocalFileSystem, Path}
-import org.scalatest.{BeforeAndAfterEach, FunSpec, Matchers}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
-trait TestSpec extends FunSpec with Matchers with BeforeAndAfterEach {
+trait TestSpec extends AnyFunSpec with Matchers with BeforeAndAfterEach {
 
   var testingBaseDir: java.nio.file.Path = _
   var testingBaseDirName: String = _

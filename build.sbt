@@ -1,17 +1,14 @@
 import sbt.Keys.{developers, fork, homepage, scalaVersion, scmInfo}
 import sbt.url
 import xerial.sbt.Sonatype._
+import Dependencies.{scopt, spark, test}
 
-lazy val scala212 = "2.12.8"
-lazy val scala211 = "2.11.12"
+lazy val scala212 = Dependencies.scala212
+lazy val scala211 = Dependencies.scala211
 lazy val supportedScalaVersions = List(scala212, scala211)
 
-ThisBuild / scalaVersion := scala211
+ThisBuild / scalaVersion := scala212
 ThisBuild / organization := "com.coxautodata"
-
-val sparkVersion = "2.4.3"
-val scoptVersion = "3.5.0"
-val scalatestVersion = "3.0.5"
 
 lazy val compilerOptions = Seq(
   "-unchecked",
@@ -26,16 +23,17 @@ lazy val compilerOptions = Seq(
   "utf8"
 )
 
+addCommandAlias("ci", ";+compile ;+test")
+
 lazy val sparkdistcp = (project in file("."))
   .settings(
     name := "spark-distcp",
-    fork in Test := true,
+    Test / fork := true,
     scalacOptions ++= compilerOptions,
     crossScalaVersions := supportedScalaVersions,
-    libraryDependencies += "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-    libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
-    libraryDependencies += "com.github.scopt" %% "scopt" % scoptVersion % Compile,
+    libraryDependencies += test,
+    libraryDependencies += scopt,
+    libraryDependencies ++= spark(scalaVersion.value),
     licenses := Seq(
       "APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")
     ),
@@ -61,6 +59,12 @@ lazy val sparkdistcp = (project in file("."))
         name = "Vicky Avison",
         email = "vicky.avison@coxauto.co.uk",
         url = url("https://coxautodata.com")
+      ),
+      Developer(
+        id = "jamesfielder",
+        name = "James Fielder",
+        email = "james@fielder.dev",
+        url = url("https://james.fielder.dev")
       )
     ),
     sonatypeProjectHosting := Some(
@@ -70,7 +74,7 @@ lazy val sparkdistcp = (project in file("."))
         "alex.bush@coxauto.co.uk"
       )
     ),
-    publishArtifact in Test := true,
+    Test / publishArtifact := true,
     publishConfiguration := publishConfiguration.value
       .withOverwrite(isSnapshot.value),
     publishLocalConfiguration := publishLocalConfiguration.value
