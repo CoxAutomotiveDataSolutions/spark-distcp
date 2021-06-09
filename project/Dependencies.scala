@@ -4,9 +4,8 @@ object Dependencies {
 
   val sparkVersion24 = "2.4.7"
   val sparkVersion3 = "3.1.2"
-  val scoptVersion = "3.7.0"
   // wait on https://github.com/scopt/scopt/issues/312
-//  val scoptVersion = "4.0.1"
+  val scoptVersion = "4.0.1"
   val scalatestVersion = "3.2.9"
   val scala212 = "2.12.14"
   val scala211 = "2.11.12"
