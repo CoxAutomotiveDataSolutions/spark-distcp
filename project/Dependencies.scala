@@ -4,6 +4,7 @@ object Dependencies {
 
   val sparkVersion24 = "2.4.7"
   val sparkVersion3 = "3.2.0"
+  val sparkVersion31 = "3.1.2"
   // wait on https://github.com/scopt/scopt/issues/312
   val scoptVersion = "4.0.1"
   val scalatestVersion = "3.2.10"
@@ -35,7 +36,12 @@ object Dependencies {
     sparkVersEnv match {
       case Some(version) => deps(version)
       case None =>
-        val sparkVers = if (scalaVersion == scala211) sparkVersion24 else sparkVersion3
+        val sparkVers = scalaVersion match {
+          case `scala211` => `sparkVersion24`
+          case `scala212` => `sparkVersion31`
+          case `scala213` => `sparkVersion3`
+          case _ => `sparkVersion3`
+        }
         deps(sparkVers)
     }
   }
