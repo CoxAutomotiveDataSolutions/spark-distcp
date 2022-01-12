@@ -7,7 +7,7 @@ object Dependencies {
   // wait on https://github.com/scopt/scopt/issues/312
   val scoptVersion = "4.0.1"
   val scalatestVersion = "3.2.9"
-  val scala212 = "2.12.14"
+  val scala212 = "2.12.15"
   val scala211 = "2.11.12"
 
   val defaultSparkVersion = sparkVersion3

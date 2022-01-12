@@ -22,17 +22,23 @@ stages:
         matrix:
           Spark3012:
             SPARKVERSION: '3.0.2'
-            SCALAVERSION: '2.12.14'
+            SCALAVERSION: '2.12.15'
           Spark3112:
             SPARKVERSION: '3.1.2'
-            SCALAVERSION: '2.12.14'
+            SCALAVERSION: '2.12.15'
           Spark24711:
             SPARKVERSION: '2.4.7'
             SCALAVERSION: '2.11.12'
           Spark24511:
             SPARKVERSION: '2.4.5'
             SCALAVERSION: '2.11.12'
-        maxParallel: 4
+          Spark32012:
+            SPARKVERSION: '3.2.0'
+            SCALAVERSION: '2.12.15'
+          Spark32013:
+            SPARKVERSION: '3.2.0'
+            SCALAVERSION: '2.13.7'
+        maxParallel: 10
       steps:
         - task: JavaToolInstaller@0
           inputs:
