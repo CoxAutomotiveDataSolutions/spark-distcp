@@ -3,16 +3,17 @@ import sbt._
 object Dependencies {
 
   val sparkVersion24 = "2.4.7"
-  val sparkVersion3 = "3.1.2"
+  val sparkVersion3 = "3.2.0"
   // wait on https://github.com/scopt/scopt/issues/312
   val scoptVersion = "4.0.1"
   val scalatestVersion = "3.2.9"
   val scala212 = "2.12.15"
   val scala211 = "2.11.12"
   val scala213 = "2.13.7"
+  val collectionCompat = "2.6.0"
 
   val defaultSparkVersion = sparkVersion3
-  val defaultScalaVersion = scala212
+  val defaultScalaVersion = scala213
 
   lazy val scalaVers = sys.env.getOrElse("SCALA_VERSION", defaultScalaVersion)
   lazy val sparkVers = sys.env.getOrElse("SPARK_VERSION", defaultSparkVersion)

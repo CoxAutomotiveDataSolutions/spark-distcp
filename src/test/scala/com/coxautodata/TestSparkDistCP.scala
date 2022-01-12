@@ -23,7 +23,7 @@ class TestSparkDistCP extends TestSpec {
         CopyDefinitionWithDependencies(SerializableFileStatus(new Path("/file3").toUri, 500, File), new Path("/dest/file3").toUri, Seq.empty)
       )
 
-      generateBatchedFileKeys(3, 2000)(1, in.toIterator)
+      generateBatchedFileKeys(3, 2000)(1, in.iterator)
         .toSeq
         .map { case (k, c) => (k, c.source.getPath.toString) } should contain theSameElementsInOrderAs Seq(
         ((1, 0), "/one"),
@@ -57,7 +57,7 @@ class TestSparkDistCP extends TestSpec {
         .repartition(2)
 
       batchAndPartitionFiles(inRDD, 2, 2000).mapPartitionsWithIndex {
-        case (p, v) => List((p, v.toList)).toIterator
+        case (p, v) => List((p, v.toList)).iterator
       }
         .collect()
         .toSeq
@@ -96,7 +96,7 @@ class TestSparkDistCP extends TestSpec {
         .repartition(1)
 
       batchAndPartitionFiles(inRDD, 2, 2000).mapPartitionsWithIndex {
-        case (p, v) => List((p, v.toList)).toIterator
+        case (p, v) => List((p, v.toList)).iterator
       }
         .collect()
         .toSeq

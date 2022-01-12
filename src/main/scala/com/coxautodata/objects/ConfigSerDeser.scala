@@ -28,7 +28,7 @@ import org.apache.hadoop.conf.Configuration
   */
 class ConfigSerDeser(var conf: Configuration) extends Serializable {
 
-  def this() {
+  def this() = {
     this(new Configuration())
   }
 

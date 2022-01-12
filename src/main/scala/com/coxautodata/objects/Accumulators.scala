@@ -4,7 +4,7 @@ import com.coxautodata.utils.FileUtils
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.LongAccumulator
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class Accumulators(sparkSession: SparkSession) extends Serializable {
 

@@ -6,7 +6,7 @@ import org.apache.spark.util.AccumulatorV2
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class TestExceptionCountAccumulator extends AnyFunSpec with Matchers {
 

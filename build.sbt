@@ -35,6 +35,7 @@ lazy val sparkdistcp = (project in file("."))
     libraryDependencies += test,
     libraryDependencies += scopt,
     libraryDependencies ++= spark(scalaVersion.value),
+    libraryDependencies += "org.scala-lang.modules" %% "scala-collection-compat" % Dependencies.collectionCompat,
     licenses := Seq(
       "APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")
     ),
