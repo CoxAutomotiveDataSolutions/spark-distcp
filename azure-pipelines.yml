@@ -142,6 +142,6 @@ stages:
             displayName: "Run sbt ci-release"
             env:
               PGP_PASSPHRASE: $(PGP-PASSPHRASE)
-              PGP_SECRET: $(PGP-SECRET)
+              PGP_SECRET: $(PGP-SECRET-B64)
               SONATYPE_PASSWORD: $(SONATYPE-PASSWORD)
               SONATYPE_USERNAME: $(SONATYPE-USERNAME)
