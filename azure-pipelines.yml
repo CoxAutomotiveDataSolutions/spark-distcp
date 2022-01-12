@@ -37,7 +37,7 @@ stages:
             SCALAVERSION: '2.12.15'
           Spark32013:
             SPARKVERSION: '3.2.0'
-            SCALAVERSION: '2.13.7'
+            SCALAVERSION: '2.13.8'
         maxParallel: 10
       steps:
         - task: JavaToolInstaller@0

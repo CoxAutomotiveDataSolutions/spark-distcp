@@ -40,7 +40,7 @@ object Dependencies {
           case `scala211` => `sparkVersion24`
           case `scala212` => `sparkVersion31`
           case `scala213` => `sparkVersion3`
-          case _ => `sparkVersion3`
+          case _          => `sparkVersion3`
         }
         deps(sparkVers)
     }
