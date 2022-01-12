@@ -1,6 +1,10 @@
 package com.coxautodata.utils
 
-import com.coxautodata.objects.DeleteActionResult.{Deleted, SkippedDoesNotExists, SkippedDryRun}
+import com.coxautodata.objects.DeleteActionResult.{
+  Deleted,
+  SkippedDoesNotExists,
+  SkippedDryRun
+}
 import com.coxautodata.objects._
 import com.coxautodata.utils.CopyUtils._
 import com.coxautodata.{SparkDistCPOptions, TestSpec}
@@ -40,7 +44,15 @@ class TestCopyUtils extends TestSpec {
 
       val source = createFile(new Path("1.file"), "a".getBytes)
       val destPath = new Path(testingBaseDirPath, "2.file")
-      performCopy(localFileSystem, source, localFileSystem, destPath.toUri, removeExisting = false, ignoreErrors = false, taskAttemptID = 1)
+      performCopy(
+        localFileSystem,
+        source,
+        localFileSystem,
+        destPath.toUri,
+        removeExisting = false,
+        ignoreErrors = false,
+        taskAttemptID = 1
+      )
 
       filesAreIdentical(
         source,
@@ -65,7 +77,15 @@ class TestCopyUtils extends TestSpec {
         Option(localFileSystem.getFileChecksum(destPath))
       ) should be(false)
 
-      performCopy(localFileSystem, source, localFileSystem, destPath.toUri, removeExisting = true, ignoreErrors = false, taskAttemptID = 1)
+      performCopy(
+        localFileSystem,
+        source,
+        localFileSystem,
+        destPath.toUri,
+        removeExisting = true,
+        ignoreErrors = false,
+        taskAttemptID = 1
+      )
 
       filesAreIdentical(
         source,
@@ -83,13 +103,29 @@ class TestCopyUtils extends TestSpec {
       createFile(new Path(destPath.getName), "aa".getBytes)
 
       intercept[RuntimeException] {
-        performCopy(localFileSystem, source, localFileSystem, destPath.toUri, removeExisting = false, ignoreErrors = false, taskAttemptID = 1)
+        performCopy(
+          localFileSystem,
+          source,
+          localFileSystem,
+          destPath.toUri,
+          removeExisting = false,
+          ignoreErrors = false,
+          taskAttemptID = 1
+        )
       }
 
-      performCopy(localFileSystem, source, localFileSystem, destPath.toUri, removeExisting = false, ignoreErrors = true, taskAttemptID = 2)
-        .getMessage should be(
+      performCopy(
+        localFileSystem,
+        source,
+        localFileSystem,
+        destPath.toUri,
+        removeExisting = false,
+        ignoreErrors = true,
+        taskAttemptID = 2
+      ).getMessage should be(
         s"Source: [${source.getPath.toUri}], Destination: [$destPath], " +
-          s"Type: [FileCopy: 1 bytes], Result: [Failed: Cannot create file [$destPath] as it already exists]")
+          s"Type: [FileCopy: 1 bytes], Result: [Failed: Cannot create file [$destPath] as it already exists]"
+      )
 
     }
 
@@ -101,22 +137,35 @@ class TestCopyUtils extends TestSpec {
       val sourcePath = new Path(testingBaseDirPath, "sub")
       localFileSystem.mkdirs(sourcePath)
       val destPath = new Path(testingBaseDirPath, "dest")
-      val copyDefinition = SingleCopyDefinition(SerializableFileStatus(localFileSystem.getFileStatus(sourcePath)), destPath.toUri)
+      val copyDefinition = SingleCopyDefinition(
+        SerializableFileStatus(localFileSystem.getFileStatus(sourcePath)),
+        destPath.toUri
+      )
 
-      //Dry run
+      // Dry run
       localFileSystem.exists(destPath) should be(false)
-      createDirectory(localFileSystem, copyDefinition, SparkDistCPOptions(dryRun = true))
+      createDirectory(
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(dryRun = true)
+      )
       localFileSystem.exists(destPath) should be(false)
 
-      //Create
+      // Create
       localFileSystem.exists(destPath) should be(false)
-      createDirectory(localFileSystem, copyDefinition, SparkDistCPOptions())
-        .copyAction should be(CopyActionResult.Created)
+      createDirectory(
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions()
+      ).copyAction should be(CopyActionResult.Created)
       localFileSystem.exists(destPath) should be(true)
 
-      //Already exists
-      createDirectory(localFileSystem, copyDefinition, SparkDistCPOptions())
-        .copyAction should be(CopyActionResult.SkippedAlreadyExists)
+      // Already exists
+      createDirectory(
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions()
+      ).copyAction should be(CopyActionResult.SkippedAlreadyExists)
     }
 
   }
@@ -129,14 +178,24 @@ class TestCopyUtils extends TestSpec {
       val destPath = new Path(testingBaseDirPath, "2.file")
       val copyDefinition = SingleCopyDefinition(source, destPath.toUri)
 
-      //Dry run
-      copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(dryRun = true), 1)
-        .copyAction should be(CopyActionResult.SkippedDryRun)
+      // Dry run
+      copyFile(
+        localFileSystem,
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(dryRun = true),
+        1
+      ).copyAction should be(CopyActionResult.SkippedDryRun)
       localFileSystem.exists(destPath) should be(false)
 
-      //Missing at destination
-      copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(), 1)
-        .copyAction should be(CopyActionResult.Copied)
+      // Missing at destination
+      copyFile(
+        localFileSystem,
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(),
+        1
+      ).copyAction should be(CopyActionResult.Copied)
       localFileSystem.exists(destPath) should be(true)
 
       filesAreIdentical(
@@ -146,7 +205,7 @@ class TestCopyUtils extends TestSpec {
         Option(localFileSystem.getFileChecksum(destPath))
       ) should be(true)
 
-      //Present at destination, skipped
+      // Present at destination, skipped
       localFileSystem.delete(destPath, false)
       createFile(new Path("2.file"), "aa".getBytes).getPath
       filesAreIdentical(
@@ -156,8 +215,13 @@ class TestCopyUtils extends TestSpec {
         Option(localFileSystem.getFileChecksum(destPath))
       ) should be(false)
 
-      copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(), 1)
-        .copyAction should be(CopyActionResult.SkippedAlreadyExists)
+      copyFile(
+        localFileSystem,
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(),
+        1
+      ).copyAction should be(CopyActionResult.SkippedAlreadyExists)
 
       filesAreIdentical(
         source,
@@ -180,9 +244,14 @@ class TestCopyUtils extends TestSpec {
         Option(localFileSystem.getFileChecksum(destPath))
       ) should be(false)
 
-      //Present at destination, overwrite dry-run
-      copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(overwrite = true, dryRun = true), 1)
-        .copyAction should be(CopyActionResult.SkippedDryRun)
+      // Present at destination, overwrite dry-run
+      copyFile(
+        localFileSystem,
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(overwrite = true, dryRun = true),
+        1
+      ).copyAction should be(CopyActionResult.SkippedDryRun)
 
       filesAreIdentical(
         source,
@@ -191,9 +260,14 @@ class TestCopyUtils extends TestSpec {
         Option(localFileSystem.getFileChecksum(destPath))
       ) should be(false)
 
-      //Present at destination, overwrite
-      copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(overwrite = true), 1)
-        .copyAction should be(CopyActionResult.OverwrittenOrUpdated)
+      // Present at destination, overwrite
+      copyFile(
+        localFileSystem,
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(overwrite = true),
+        1
+      ).copyAction should be(CopyActionResult.OverwrittenOrUpdated)
 
       filesAreIdentical(
         source,
@@ -215,9 +289,14 @@ class TestCopyUtils extends TestSpec {
         Option(localFileSystem.getFileChecksum(destPath))
       ) should be(false)
 
-      //Present at destination, update dry-run
-      copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(update = true, dryRun = true), 1)
-        .copyAction should be(CopyActionResult.SkippedDryRun)
+      // Present at destination, update dry-run
+      copyFile(
+        localFileSystem,
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(update = true, dryRun = true),
+        1
+      ).copyAction should be(CopyActionResult.SkippedDryRun)
 
       filesAreIdentical(
         source,
@@ -226,9 +305,14 @@ class TestCopyUtils extends TestSpec {
         Option(localFileSystem.getFileChecksum(destPath))
       ) should be(false)
 
-      //Present at destination, differing file, update
-      copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(update = true), 1)
-        .copyAction should be(CopyActionResult.OverwrittenOrUpdated)
+      // Present at destination, differing file, update
+      copyFile(
+        localFileSystem,
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(update = true),
+        1
+      ).copyAction should be(CopyActionResult.OverwrittenOrUpdated)
 
       filesAreIdentical(
         source,
@@ -237,8 +321,13 @@ class TestCopyUtils extends TestSpec {
         Option(localFileSystem.getFileChecksum(destPath))
       ) should be(true)
 
-      copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(update = true), 1)
-        .copyAction should be(CopyActionResult.SkippedIdenticalFileAlreadyExists)
+      copyFile(
+        localFileSystem,
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(update = true),
+        1
+      ).copyAction should be(CopyActionResult.SkippedIdenticalFileAlreadyExists)
     }
 
     it("failed copy with sub directory") {
@@ -248,14 +337,26 @@ class TestCopyUtils extends TestSpec {
       val copyDefinition = SingleCopyDefinition(source, destPath.toUri)
 
       intercept[RuntimeException] {
-        copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(), 1)
+        copyFile(
+          localFileSystem,
+          localFileSystem,
+          copyDefinition,
+          SparkDistCPOptions(),
+          1
+        )
       }
 
-      copyFile(localFileSystem, localFileSystem, copyDefinition, SparkDistCPOptions(ignoreErrors = true), 1)
-        .getMessage should be(
+      copyFile(
+        localFileSystem,
+        localFileSystem,
+        copyDefinition,
+        SparkDistCPOptions(ignoreErrors = true),
+        1
+      ).getMessage should be(
         s"Source: [${source.getPath.toUri}], " +
           s"Destination: [$destPath], Type: [FileCopy: 1 bytes], " +
-          s"Result: [Failed: Destination folder [${destPath.getParent}] does not exist]")
+          s"Result: [Failed: Destination folder [${destPath.getParent}] does not exist]"
+      )
 
     }
   }
@@ -266,11 +367,22 @@ class TestCopyUtils extends TestSpec {
 
       val source = createFile(new Path("sub", "1.file"), "a".getBytes)
       val destPath = new Path(testingBaseDirPath, new Path("sub1", "1.file"))
-      val parentCopyDefinition = SingleCopyDefinition(SerializableFileStatus(localFileSystem.getFileStatus(source.getPath.getParent)), new Path(testingBaseDirPath, "sub1").toUri)
-      val fileCopyDefinition = CopyDefinitionWithDependencies(source, destPath.toUri, Seq(parentCopyDefinition))
+      val parentCopyDefinition = SingleCopyDefinition(
+        SerializableFileStatus(
+          localFileSystem.getFileStatus(source.getPath.getParent)
+        ),
+        new Path(testingBaseDirPath, "sub1").toUri
+      )
+      val fileCopyDefinition = CopyDefinitionWithDependencies(
+        source,
+        destPath.toUri,
+        Seq(parentCopyDefinition)
+      )
       val options = SparkDistCPOptions()
 
-      fileCopyDefinition.getAllCopyDefinitions.foreach(handleCopy(localFileSystem, localFileSystem, _, options, 1))
+      fileCopyDefinition.getAllCopyDefinitions.foreach(
+        handleCopy(localFileSystem, localFileSystem, _, options, 1)
+      )
 
       filesAreIdentical(
         source,
@@ -301,9 +413,11 @@ class TestCopyUtils extends TestSpec {
 
       localFileSystem.exists(filePath) should be(true)
       localFileSystem.exists(dirPath) should be(true)
-      deleteFile(localFileSystem, dirPath, SparkDistCPOptions(dryRun = true)) should be(
-        DeleteResult(dirPath.toUri, SkippedDryRun)
-      )
+      deleteFile(
+        localFileSystem,
+        dirPath,
+        SparkDistCPOptions(dryRun = true)
+      ) should be(DeleteResult(dirPath.toUri, SkippedDryRun))
       localFileSystem.exists(filePath) should be(true)
       localFileSystem.exists(dirPath) should be(true)
       deleteFile(localFileSystem, dirPath, SparkDistCPOptions()) should be(

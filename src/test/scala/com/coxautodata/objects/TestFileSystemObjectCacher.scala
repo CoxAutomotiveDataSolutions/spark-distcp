@@ -16,9 +16,13 @@ class TestFileSystemObjectCacher extends AnyFunSpec with Matchers {
 
     cache.get(new URI("file:///test/file")) should be(None)
 
-    cache.getOrCreate(new URI("file:///test/file")).getUri.toString should be("file:///")
+    cache.getOrCreate(new URI("file:///test/file")).getUri.toString should be(
+      "file:///"
+    )
 
-    cache.get(new URI("file:///test2/file2")).map(_.getUri.toString) should be(Some("file:///"))
+    cache.get(new URI("file:///test2/file2")).map(_.getUri.toString) should be(
+      Some("file:///")
+    )
 
   }
 

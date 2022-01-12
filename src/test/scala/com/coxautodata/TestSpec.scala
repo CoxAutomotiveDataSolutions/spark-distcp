@@ -24,7 +24,8 @@ trait TestSpec extends AnyFunSpec with Matchers with BeforeAndAfterEach {
     testingBaseDir = Files.createTempDirectory("test_output")
     testingBaseDirName = testingBaseDir.toString
     localFileSystem = FileSystem.getLocal(new Configuration())
-    testingBaseDirPath = localFileSystem.makeQualified(new Path(testingBaseDirName))
+    testingBaseDirPath =
+      localFileSystem.makeQualified(new Path(testingBaseDirName))
   }
 
   override def afterEach(): Unit = {
@@ -32,7 +33,10 @@ trait TestSpec extends AnyFunSpec with Matchers with BeforeAndAfterEach {
     FileUtils.deleteDirectory(testingBaseDir.toFile)
   }
 
-  def createFile(relativePath: Path, content: Array[Byte]): SerializableFileStatus = {
+  def createFile(
+    relativePath: Path,
+    content: Array[Byte]
+  ): SerializableFileStatus = {
     val path = new Path(testingBaseDirPath, relativePath)
     localFileSystem.mkdirs(path.getParent)
     val in = new ByteArrayInputStream(content)

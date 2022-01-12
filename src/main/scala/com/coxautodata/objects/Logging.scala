@@ -61,5 +61,4 @@ trait Logging {
     log.isTraceEnabled
   }
 
-
 }

@@ -7,8 +7,7 @@ import org.apache.hadoop.fs.Path
 
 object OptionsParsing {
 
-  /**
-    * Parse a set of command-line arguments into a [[Config]] object
+  /** Parse a set of command-line arguments into a [[Config]] object
     */
   def parse(args: Array[String], hadoopConfiguration: Configuration): Config = {
 
@@ -38,8 +37,12 @@ object OptionsParsing {
         .text("Overwrite if source and destination differ in size, or checksum")
 
       opt[String]("filters")
-        .action((f, c) => c.copyOptions(_.withFiltersFromFile(new URI(f), hadoopConfiguration)))
-        .text("The path to a file containing a list of pattern strings, one string per line, such that paths matching the pattern will be excluded from the copy.")
+        .action((f, c) =>
+          c.copyOptions(_.withFiltersFromFile(new URI(f), hadoopConfiguration))
+        )
+        .text(
+          "The path to a file containing a list of pattern strings, one string per line, such that paths matching the pattern will be excluded from the copy."
+        )
 
       opt[Unit]("delete")
         .action((_, c) => c.copyOptions(_.copy(delete = true)))
@@ -51,7 +54,9 @@ object OptionsParsing {
 
       opt[Unit]("consistentPathBehaviour")
         .action((_, c) => c.copyOptions(_.copy(consistentPathBehaviour = true)))
-        .text("Revert the path behaviour when using overwrite or update to the path behaviour of non-overwrite/non-update")
+        .text(
+          "Revert the path behaviour when using overwrite or update to the path behaviour of non-overwrite/non-update"
+        )
 
       opt[Int]("maxFilesPerTask")
         .action((i, c) => c.copyOptions(_.copy(maxFilesPerTask = i)))
@@ -80,19 +85,26 @@ object OptionsParsing {
   }
 }
 
-case class Config(options: SparkDistCPOptions = SparkDistCPOptions(), URIs: Seq[URI] = Seq.empty) {
+case class Config(
+  options: SparkDistCPOptions = SparkDistCPOptions(),
+  URIs: Seq[URI] = Seq.empty
+) {
 
   def copyOptions(f: SparkDistCPOptions => SparkDistCPOptions): Config = {
     this.copy(options = f(options))
   }
 
   def validateUris(): Unit = {
-    require(URIs.length >= 2, "you must supply two or more paths, representing the source paths and a destination")
+    require(
+      URIs.length >= 2,
+      "you must supply two or more paths, representing the source paths and a destination"
+    )
   }
 
   def sourceAndDestPaths: (Seq[Path], Path) = {
     URIs.reverse match {
-      case d :: s :: ts => ((s :: ts).reverse.map(u => new Path(u)), new Path(d))
+      case d :: s :: ts =>
+        ((s :: ts).reverse.map(u => new Path(u)), new Path(d))
       case _ => throw new RuntimeException("Incorrect number of URIs")
     }
   }
