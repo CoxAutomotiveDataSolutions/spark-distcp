@@ -5,9 +5,10 @@ import Dependencies.{scopt, spark, test}
 
 lazy val scala212 = Dependencies.scala212
 lazy val scala211 = Dependencies.scala211
-lazy val supportedScalaVersions = List(scala212, scala211)
+lazy val scala213 = Dependencies.scala213
+lazy val supportedScalaVersions = List(scala213, scala212, scala211)
 
-ThisBuild / scalaVersion := scala212
+ThisBuild / scalaVersion := Dependencies.scalaVers
 ThisBuild / organization := "com.coxautodata"
 
 lazy val compilerOptions = Seq(

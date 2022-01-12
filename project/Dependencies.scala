@@ -9,12 +9,13 @@ object Dependencies {
   val scalatestVersion = "3.2.9"
   val scala212 = "2.12.15"
   val scala211 = "2.11.12"
+  val scala213 = "2.13.7"
 
   val defaultSparkVersion = sparkVersion3
   val defaultScalaVersion = scala212
 
-  lazy val sparkVers = sys.env.getOrElse("SPARK_VERSION", defaultSparkVersion)
   lazy val scalaVers = sys.env.getOrElse("SCALA_VERSION", defaultScalaVersion)
+  lazy val sparkVers = sys.env.getOrElse("SPARK_VERSION", defaultSparkVersion)
 
   val test = "org.scalatest" %% "scalatest" % scalatestVersion % Test
   val scopt = "com.github.scopt" %% "scopt" % scoptVersion % Compile
