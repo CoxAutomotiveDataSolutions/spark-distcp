@@ -1,0 +1,147 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - "*"
+  tags:
+    include:
+      - refs/tags/*
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+      - '*'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: COURSIER_CACHE
+    value: $(Pipeline.Workspace)/.coursier
+  - name: IVY_CACHE_FOLDER
+    value: $(Pipeline.Workspace)/.ivy2
+  - name: SBT_OPTS
+    value: -Dsbt.boot.directory=$(Pipeline.Workspace)/.sbt/boot -Dsbt.coursier.home=$(Pipeline.Workspace)/.coursier
+  - group: Sonatype
+
+stages:
+  - stage: testcrossspark
+    displayName: "Test against multiple spark versions"
+    jobs:
+    - job: tests
+      displayName: Test multiple spark versions
+      strategy:
+        matrix:
+          Spark3012:
+            SPARKVERSION: '3.0.2'
+            SCALAVERSION: '2.12.15'
+          Spark3112:
+            SPARKVERSION: '3.1.2'
+            SCALAVERSION: '2.12.15'
+          Spark24711:
+            SPARKVERSION: '2.4.7'
+            SCALAVERSION: '2.11.12'
+          Spark24511:
+            SPARKVERSION: '2.4.5'
+            SCALAVERSION: '2.11.12'
+          Spark32012:
+            SPARKVERSION: '3.2.0'
+            SCALAVERSION: '2.12.15'
+          Spark32013:
+            SPARKVERSION: '3.2.0'
+            SCALAVERSION: '2.13.8'
+        maxParallel: 10
+      steps:
+        - task: JavaToolInstaller@0
+          inputs:
+            versionSpec: '8'
+            jdkArchitectureOption: 'x64'
+            jdkSourceOption: 'PreInstalled'
+        - script: |
+            echo Scala Version: $SCALA_VERSION
+            echo Spark Version: $SPARK_VERSION
+            sbt '; compile ; test'
+          env:
+            SPARK_VERSION: $(SPARKVERSION)
+            SCALA_VERSION: $(SCALAVERSION)
+  - stage: sbtcrossbuild
+    dependsOn: [testcrossspark]
+    displayName: "Run sbt cross build"
+    jobs:
+    - job: build
+      displayName: Run sbt cross build
+      steps:
+        - task: Cache@2
+          inputs:
+            key: 'sbt | ivy2 | **/build.sbt | project/Dependencies.scala'
+            restoreKeys: |
+              sbt | ivy2 | **/build.sbt
+              sbt | ivy2
+            path: $(Pipeline.Workspace)/.ivy2
+        - task: Cache@2
+          inputs:
+            key: 'sbt | coursier | **/build.sbt | project/Dependencies.scala'
+            restoreKeys: |
+              sbt | coursier | **/build.sbt
+              sbt | coursier
+            path: $(Pipeline.Workspace)/.coursier
+        - task: Cache@2
+          inputs:
+            key: 'sbt | boot | **/build.sbt | project/Dependencies.scala'
+            restoreKeys: |
+              sbt | boot | **/build.sbt
+              sbt | boot
+            path: $(Pipeline.Workspace)/.sbt/boot
+        - task: JavaToolInstaller@0
+          inputs:
+            versionSpec: '8'
+            jdkArchitectureOption: 'x64'
+            jdkSourceOption: 'PreInstalled'
+        - script: |
+            mkdir -p $(Pipeline.Workspace)/.ivy2
+            sbt ci
+          displayName: "Run sbt tests"
+  - stage: deployToSonatype
+    dependsOn: [sbtcrossbuild]
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'))
+    displayName: Push new version
+    jobs:
+      - job: Deploy
+        displayName: Push
+        steps:
+          - task: Cache@2
+            inputs:
+              key: 'sbt | ivy2 | **/build.sbt | project/Dependencies.scala'
+              restoreKeys: |
+                sbt | ivy2 | **/build.sbt
+                sbt | ivy2
+              path: $(Pipeline.Workspace)/.ivy2
+          - task: Cache@2
+            inputs:
+              key: 'sbt | coursier | **/build.sbt | project/Dependencies.scala'
+              restoreKeys: |
+                sbt | coursier | **/build.sbt
+                sbt | coursier
+              path: $(Pipeline.Workspace)/.coursier
+          - task: Cache@2
+            inputs:
+              key: 'sbt | boot | **/build.sbt | project/Dependencies.scala'
+              restoreKeys: |
+                sbt | boot | **/build.sbt
+                sbt | boot
+              path: $(Pipeline.Workspace)/.sbt/boot
+          - task: JavaToolInstaller@0
+            inputs:
+              versionSpec: '8'
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+          - script: |
+              mkdir -p $(Pipeline.Workspace)/.ivy2
+              sbt ci-release
+            displayName: "Run sbt ci-release"
+            env:
+              PGP_PASSPHRASE: $(PGP-PASSPHRASE)
+              PGP_SECRET: $(PGP-SECRET)
+              SONATYPE_PASSWORD: $(SONATYPE-PASSWORD)
+              SONATYPE_USERNAME: $(SONATYPE-USERNAME)

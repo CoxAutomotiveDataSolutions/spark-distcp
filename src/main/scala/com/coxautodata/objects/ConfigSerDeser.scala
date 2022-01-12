@@ -19,16 +19,13 @@ package com.coxautodata.objects
 
 import org.apache.hadoop.conf.Configuration
 
-/**
-  * Class to make Hadoop configurations serializable; uses the
-  * `Writeable` operations to do this.
-  * Note: this only serializes the explicitly set values, not any set
-  * in site/default or other XML resources.
-  *
+/** Class to make Hadoop configurations serializable; uses the `Writeable`
+  * operations to do this. Note: this only serializes the explicitly set values,
+  * not any set in site/default or other XML resources.
   */
 class ConfigSerDeser(var conf: Configuration) extends Serializable {
 
-  def this() {
+  def this() = {
     this(new Configuration())
   }
 

@@ -6,13 +6,16 @@ import java.util.function.{BiConsumer, BiFunction}
 
 import org.apache.spark.util.AccumulatorV2
 
-class ExceptionCountAccumulator extends AccumulatorV2[String, java.util.Map[String, Long]] {
+class ExceptionCountAccumulator
+    extends AccumulatorV2[String, java.util.Map[String, Long]] {
 
-  private val _map: java.util.Map[String, Long] = Collections.synchronizedMap(new util.HashMap[String, Long]())
+  private val _map: java.util.Map[String, Long] =
+    Collections.synchronizedMap(new util.HashMap[String, Long]())
 
   override def isZero: Boolean = _map.isEmpty
 
-  override def copyAndReset(): ExceptionCountAccumulator = new ExceptionCountAccumulator
+  override def copyAndReset(): ExceptionCountAccumulator =
+    new ExceptionCountAccumulator
 
   override def copy(): ExceptionCountAccumulator = {
     val newAcc = new ExceptionCountAccumulator
@@ -34,7 +37,9 @@ class ExceptionCountAccumulator extends AccumulatorV2[String, java.util.Map[Stri
     _map.merge(k, v, CombineCounts)
   }
 
-  override def merge(other: AccumulatorV2[String, util.Map[String, Long]]): Unit = {
+  override def merge(
+    other: AccumulatorV2[String, util.Map[String, Long]]
+  ): Unit = {
     other match {
       case e: ExceptionCountAccumulator =>
         e._map.forEach {
@@ -42,8 +47,10 @@ class ExceptionCountAccumulator extends AccumulatorV2[String, java.util.Map[Stri
             override def accept(k: String, v: Long): Unit = add(k, v)
           }
         }
-      case _ => throw new UnsupportedOperationException(
-        s"Cannot merge ${this.getClass.getName} with ${other.getClass.getName}")
+      case _ =>
+        throw new UnsupportedOperationException(
+          s"Cannot merge ${this.getClass.getName} with ${other.getClass.getName}"
+        )
     }
   }
 
@@ -53,4 +60,3 @@ class ExceptionCountAccumulator extends AccumulatorV2[String, java.util.Map[Stri
 object CombineCounts extends BiFunction[Long, Long, Long] {
   override def apply(t: Long, u: Long): Long = t + u
 }
-

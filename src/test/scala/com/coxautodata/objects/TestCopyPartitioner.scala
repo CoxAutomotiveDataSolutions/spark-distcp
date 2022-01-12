@@ -1,8 +1,9 @@
 package com.coxautodata.objects
 
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
-class TestCopyPartitioner extends FunSpec with Matchers {
+class TestCopyPartitioner extends AnyFunSpec with Matchers {
 
   describe("getCopyPartitioner") {
 
@@ -24,11 +25,15 @@ class TestCopyPartitioner extends FunSpec with Matchers {
 
       intercept[RuntimeException] {
         partitioner.getPartition(1)
-      }.getMessage should be("Partitioned does not support key [1]. Must be (Int, Int).")
+      }.getMessage should be(
+        "Partitioned does not support key [1]. Must be (Int, Int)."
+      )
 
       intercept[RuntimeException] {
         partitioner.getPartition((4, 1))
-      }.getMessage should be("Key partition 4 of key [(4, 1)] was not found in the indexes [0, 1, 2, 3].")
+      }.getMessage should be(
+        "Key partition 4 of key [(4, 1)] was not found in the indexes [0, 1, 2, 3]."
+      )
 
       partitioner.getPartition((2, 0)) should be(5)
 
@@ -56,7 +61,9 @@ class TestCopyPartitioner extends FunSpec with Matchers {
       partitioner.getPartition((1, 1)) should be(4)
       intercept[RuntimeException] {
         partitioner.getPartition((2, 0))
-      }.getMessage should be("Key partition 2 of key [(2, 0)] was not found in the indexes [0, 1, 3].")
+      }.getMessage should be(
+        "Key partition 2 of key [(2, 0)] was not found in the indexes [0, 1, 3]."
+      )
       partitioner.getPartition((3, 0)) should be(5)
       partitioner.getPartition((3, 1)) should be(6)
 

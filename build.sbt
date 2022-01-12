@@ -1,17 +1,15 @@
 import sbt.Keys.{developers, fork, homepage, scalaVersion, scmInfo}
 import sbt.url
 import xerial.sbt.Sonatype._
+import Dependencies.{scopt, spark, test}
 
-lazy val scala212 = "2.12.8"
-lazy val scala211 = "2.11.12"
-lazy val supportedScalaVersions = List(scala212, scala211)
+lazy val scala212 = Dependencies.scala212
+lazy val scala211 = Dependencies.scala211
+lazy val scala213 = Dependencies.scala213
+lazy val supportedScalaVersions = List(scala213, scala212, scala211)
 
-ThisBuild / scalaVersion := scala211
+ThisBuild / scalaVersion := Dependencies.scalaVers
 ThisBuild / organization := "com.coxautodata"
-
-val sparkVersion = "2.4.3"
-val scoptVersion = "3.5.0"
-val scalatestVersion = "3.0.5"
 
 lazy val compilerOptions = Seq(
   "-unchecked",
@@ -23,19 +21,22 @@ lazy val compilerOptions = Seq(
   "-deprecation",
   "-target:jvm-1.8",
   "-encoding",
-  "utf8"
+  "utf8",
+  "-Yrangepos"
 )
+
+addCommandAlias("ci", ";+compile ;+test")
 
 lazy val sparkdistcp = (project in file("."))
   .settings(
     name := "spark-distcp",
-    fork in Test := true,
+    Test / fork := true,
     scalacOptions ++= compilerOptions,
     crossScalaVersions := supportedScalaVersions,
-    libraryDependencies += "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-    libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion % Provided,
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
-    libraryDependencies += "com.github.scopt" %% "scopt" % scoptVersion % Compile,
+    libraryDependencies += test,
+    libraryDependencies += scopt,
+    libraryDependencies ++= spark(scalaVersion.value),
+    libraryDependencies += "org.scala-lang.modules" %% "scala-collection-compat" % Dependencies.collectionCompat,
     licenses := Seq(
       "APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")
     ),
@@ -61,16 +62,22 @@ lazy val sparkdistcp = (project in file("."))
         name = "Vicky Avison",
         email = "vicky.avison@coxauto.co.uk",
         url = url("https://coxautodata.com")
+      ),
+      Developer(
+        id = "jamesfielder",
+        name = "James Fielder",
+        email = "james@fielder.dev",
+        url = url("https://james.fielder.dev")
       )
     ),
     sonatypeProjectHosting := Some(
       GitHubHosting(
         "CoxAutomotiveDataSolutions",
         "spark-distcp",
-        "alex.bush@coxauto.co.uk"
+        "james@fielder.dev"
       )
     ),
-    publishArtifact in Test := true,
+    Test / publishArtifact := true,
     publishConfiguration := publishConfiguration.value
       .withOverwrite(isSnapshot.value),
     publishLocalConfiguration := publishLocalConfiguration.value
