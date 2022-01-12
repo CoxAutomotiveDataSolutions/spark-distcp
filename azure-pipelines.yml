@@ -1,5 +1,17 @@
 trigger:
-  - master
+  batch: true
+  branches:
+    include:
+      - "*"
+  tags:
+    include:
+      - refs/tags/*
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+      - '*'
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -11,6 +23,7 @@ variables:
     value: $(Pipeline.Workspace)/.ivy2
   - name: SBT_OPTS
     value: -Dsbt.boot.directory=$(Pipeline.Workspace)/.sbt/boot -Dsbt.coursier.home=$(Pipeline.Workspace)/.coursier
+  - group: Sonatype
 
 stages:
   - stage: testcrossspark
@@ -89,3 +102,46 @@ stages:
             mkdir -p $(Pipeline.Workspace)/.ivy2
             sbt ci
           displayName: "Run sbt tests"
+  - stage: deployToSonatype
+    dependsOn: [sbtcrossbuild]
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'))
+    displayName: Push new version
+    jobs:
+      - job: Deploy
+        displayName: Push
+        steps:
+          - task: Cache@2
+            inputs:
+              key: 'sbt | ivy2 | **/build.sbt | project/Dependencies.scala'
+              restoreKeys: |
+                sbt | ivy2 | **/build.sbt
+                sbt | ivy2
+              path: $(Pipeline.Workspace)/.ivy2
+          - task: Cache@2
+            inputs:
+              key: 'sbt | coursier | **/build.sbt | project/Dependencies.scala'
+              restoreKeys: |
+                sbt | coursier | **/build.sbt
+                sbt | coursier
+              path: $(Pipeline.Workspace)/.coursier
+          - task: Cache@2
+            inputs:
+              key: 'sbt | boot | **/build.sbt | project/Dependencies.scala'
+              restoreKeys: |
+                sbt | boot | **/build.sbt
+                sbt | boot
+              path: $(Pipeline.Workspace)/.sbt/boot
+          - task: JavaToolInstaller@0
+            inputs:
+              versionSpec: '8'
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+          - script: |
+              mkdir -p $(Pipeline.Workspace)/.ivy2
+              sbt ci-release
+            displayName: "Run sbt ci-release"
+            env:
+              PGP_PASSPHRASE: $(PGP-PASSPHRASE)
+              PGP_SECRET: $(PGP-SECRET)
+              SONATYPE_PASSWORD: $(SONATYPE-PASSWORD)
+              SONATYPE_USERNAME: $(SONATYPE-USERNAME)

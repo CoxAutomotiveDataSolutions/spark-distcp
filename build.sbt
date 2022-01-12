@@ -21,7 +21,8 @@ lazy val compilerOptions = Seq(
   "-deprecation",
   "-target:jvm-1.8",
   "-encoding",
-  "utf8"
+  "utf8",
+  "-Yrangepos"
 )
 
 addCommandAlias("ci", ";+compile ;+test")
@@ -73,7 +74,7 @@ lazy val sparkdistcp = (project in file("."))
       GitHubHosting(
         "CoxAutomotiveDataSolutions",
         "spark-distcp",
-        "alex.bush@coxauto.co.uk"
+        "james@fielder.dev"
       )
     ),
     Test / publishArtifact := true,
