@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.3 - 2022-01-12
+- Move build to Azure Devops and update dependencies
+- Add cross build for scala 2.13
+- Add spark 3 (3.1 and 3.2) support
+
 ## v0.2.2 - 2019-06-21
 
 ### Fixed
