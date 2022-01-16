@@ -13,7 +13,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
     it("default options one source") {
 
-      val conf = OptionsParsing.parse(Array("src", "dest"), new Configuration())
+      val conf = OptionsParsing.parse(Array("src", "dest"))
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions())
 
@@ -22,29 +22,30 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("default options two sources") {
 
       val conf =
-        OptionsParsing.parse(Array("src1", "src2", "dest"), new Configuration())
+        OptionsParsing.parse(Array("src1", "src2", "dest"))
       conf.sourceAndDestPaths should be(
         Seq(new Path("src1"), new Path("src2")),
         new Path("dest")
       )
-      conf.options should be(SparkDistCPOptions())
+      val options = conf.options.withFiltersFromFile(new Configuration())
+      options should be(SparkDistCPOptions())
 
     }
 
     it("ignore failures flag") {
 
       val conf =
-        OptionsParsing.parse(Array("--i", "src", "dest"), new Configuration())
+        OptionsParsing.parse(Array("--i", "src", "dest"))
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
-      conf.options should be(SparkDistCPOptions(ignoreErrors = true))
+      val options = conf.options.withFiltersFromFile(new Configuration())
+      options should be(SparkDistCPOptions(ignoreErrors = true))
 
     }
 
     it("log option") {
 
       val conf = OptionsParsing.parse(
-        Array("--log", "log", "src", "dest"),
-        new Configuration()
+        Array("--log", "log", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(log = Some(new URI("log"))))
@@ -54,8 +55,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("dry-run flag") {
 
       val conf = OptionsParsing.parse(
-        Array("--dryrun", "src", "dest"),
-        new Configuration()
+        Array("--dryrun", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(dryRun = true))
@@ -65,8 +65,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("verbose flag") {
 
       val conf = OptionsParsing.parse(
-        Array("--verbose", "src", "dest"),
-        new Configuration()
+        Array("--verbose", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(verbose = true))
@@ -76,8 +75,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("overwrite flag") {
 
       val conf = OptionsParsing.parse(
-        Array("--overwrite", "src", "dest"),
-        new Configuration()
+        Array("--overwrite", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(overwrite = true))
@@ -87,8 +85,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("update flag") {
 
       val conf = OptionsParsing.parse(
-        Array("--update", "src", "dest"),
-        new Configuration()
+        Array("--update", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(update = true))
@@ -99,12 +96,11 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
       val filtersFile = this.getClass.getResource("test.filters").getPath
       val conf = OptionsParsing.parse(
-        Array("--filters", filtersFile, "src", "dest"),
-        new Configuration()
+        Array("--filters", filtersFile, "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
-      conf.options.copy(filterNot = List.empty) should be(SparkDistCPOptions())
-      conf.options.filterNot.map(_.toString()) should be(
+      val options = conf.options.withFiltersFromFile(new Configuration())
+      options.filterNot.map(_.toString()) should be(
         List(
           ".*/_temporary($|/.*)",
           ".*/_committed.*",
@@ -112,14 +108,15 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
           ".*/_SUCCESS.*"
         )
       )
+      val resetOptions = options.copy(filters = None).withFiltersFromFile(new Configuration())
+      resetOptions should be(SparkDistCPOptions())
 
     }
 
     it("delete flag") {
 
       val conf = OptionsParsing.parse(
-        Array("--delete", "--update", "src", "dest"),
-        new Configuration()
+        Array("--delete", "--update", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(delete = true, update = true))
@@ -129,8 +126,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("numListstatusThreads option") {
 
       val conf = OptionsParsing.parse(
-        Array("--numListstatusThreads", "3", "src", "dest"),
-        new Configuration()
+        Array("--numListstatusThreads", "3", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(numListstatusThreads = 3))
@@ -140,8 +136,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("consistentPathBehaviour option") {
 
       val conf = OptionsParsing.parse(
-        Array("--consistentPathBehaviour", "src", "dest"),
-        new Configuration()
+        Array("--consistentPathBehaviour", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(consistentPathBehaviour = true))
@@ -151,8 +146,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("maxFilesPerTask option") {
 
       val conf = OptionsParsing.parse(
-        Array("--maxFilesPerTask", "3", "src", "dest"),
-        new Configuration()
+        Array("--maxFilesPerTask", "3", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(maxFilesPerTask = 3))
@@ -162,8 +156,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("maxBytesPerTask option") {
 
       val conf = OptionsParsing.parse(
-        Array("--maxBytesPerTask", "30000000", "src", "dest"),
-        new Configuration()
+        Array("--maxBytesPerTask", "30000000", "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       conf.options should be(SparkDistCPOptions(maxBytesPerTask = 30000000))
@@ -177,7 +170,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
     it("single path") {
 
       intercept[IllegalArgumentException] {
-        OptionsParsing.parse(Array("path"), new Configuration())
+        OptionsParsing.parse(Array("path"))
       }.getMessage should be(
         "requirement failed: you must supply two or more paths, representing the source paths and a destination"
       )
@@ -188,10 +181,9 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
       intercept[RuntimeException] {
         OptionsParsing.parse(
-          Array("--filters", "none", "src", "dest"),
-          new Configuration()
-        )
-      }.getMessage should be("Failed to parse arguments")
+          Array("--filters", "none", "src", "dest")
+        ).options.withFiltersFromFile(new Configuration())
+      }.getMessage should be("Invalid filter file none")
 
     }
 
@@ -199,8 +191,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
       intercept[java.lang.AssertionError] {
         OptionsParsing.parse(
-          Array("--maxFilesPerTask", "-2", "src", "dest"),
-          new Configuration()
+          Array("--maxFilesPerTask", "-2", "src", "dest")
         )
       }.getMessage should be(
         "assertion failed: maxFilesPerTask must be positive"
@@ -212,8 +203,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
       intercept[java.lang.AssertionError] {
         OptionsParsing.parse(
-          Array("--maxBytesPerTask", "-2", "src", "dest"),
-          new Configuration()
+          Array("--maxBytesPerTask", "-2", "src", "dest")
         )
       }.getMessage should be(
         "assertion failed: maxBytesPerTask must be positive"
@@ -225,8 +215,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
       intercept[java.lang.AssertionError] {
         OptionsParsing.parse(
-          Array("--numListstatusThreads", "-2", "src", "dest"),
-          new Configuration()
+          Array("--numListstatusThreads", "-2", "src", "dest")
         )
       }.getMessage should be(
         "assertion failed: numListstatusThreads must be positive"
@@ -238,8 +227,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
       intercept[java.lang.AssertionError] {
         OptionsParsing.parse(
-          Array("--update", "--overwrite", "src", "dest"),
-          new Configuration()
+          Array("--update", "--overwrite", "src", "dest")
         )
       }.getMessage should be(
         "assertion failed: Both update and overwrite cannot be specified"
@@ -251,8 +239,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
       intercept[java.lang.AssertionError] {
         OptionsParsing.parse(
-          Array("--delete", "src", "dest"),
-          new Configuration()
+          Array("--delete", "src", "dest")
         )
       }.getMessage should be(
         "assertion failed: Delete must be specified with either overwrite or update"

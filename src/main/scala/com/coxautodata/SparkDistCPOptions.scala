@@ -1,10 +1,10 @@
 package com.coxautodata
 
-import java.net.URI
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 
+import java.io.IOException
+import java.net.URI
 import scala.util.matching.Regex
 
 /** Options for the DistCP application See [[OptionsParsing.parse]] for the
@@ -21,6 +21,7 @@ case class SparkDistCPOptions(
     SparkDistCPOptions.Defaults.consistentPathBehaviour,
   maxFilesPerTask: Int = SparkDistCPOptions.Defaults.maxFilesPerTask,
   maxBytesPerTask: Long = SparkDistCPOptions.Defaults.maxBytesPerTask,
+  filters: Option[URI] = SparkDistCPOptions.Defaults.filters,
   filterNot: List[Regex] = SparkDistCPOptions.Defaults.filterNot,
   numListstatusThreads: Int = SparkDistCPOptions.Defaults.numListstatusThreads,
   verbose: Boolean = SparkDistCPOptions.Defaults.verbose
@@ -48,20 +49,26 @@ case class SparkDistCPOptions(
   }
 
   def withFiltersFromFile(
-    uri: URI,
     hadoopConfiguration: Configuration
   ): SparkDistCPOptions = {
 
-    val path = new Path(uri)
-    val fs = path.getFileSystem(hadoopConfiguration)
+    val fn = filters.map(f => {
+      try {
+        val path = new Path(f)
+        val fs = path.getFileSystem(hadoopConfiguration)
 
-    val in = fs.open(path)
+        val in = fs.open(path)
 
-    val r = scala.io.Source.fromInputStream(in).getLines().map(_.r).toList
+        val r = scala.io.Source.fromInputStream(in).getLines().map(_.r).toList
 
-    in.close()
+        in.close()
+        r
+      } catch {
+        case e:IOException => throw new RuntimeException("Invalid filter file "+f, e)
+      }
+    }).getOrElse(List.empty)
 
-    this.copy(filterNot = r)
+    this.copy(filterNot = fn)
 
   }
 
@@ -79,6 +86,7 @@ object SparkDistCPOptions {
     val consistentPathBehaviour: Boolean = false
     val maxFilesPerTask: Int = 1000
     val maxBytesPerTask: Long = 1073741824L
+    val filters: Option[URI] = None
     val filterNot: List[Regex] = List.empty
     val numListstatusThreads: Int = 10
     val verbose: Boolean = false

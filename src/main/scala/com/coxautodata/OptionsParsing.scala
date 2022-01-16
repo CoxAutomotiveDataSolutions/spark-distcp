@@ -9,7 +9,7 @@ object OptionsParsing {
 
   /** Parse a set of command-line arguments into a [[Config]] object
     */
-  def parse(args: Array[String], hadoopConfiguration: Configuration): Config = {
+  def parse(args: Array[String]): Config = {
 
     val parser = new scopt.OptionParser[Config]("") {
       opt[Unit]("i")
@@ -37,9 +37,7 @@ object OptionsParsing {
         .text("Overwrite if source and destination differ in size, or checksum")
 
       opt[String]("filters")
-        .action((f, c) =>
-          c.copyOptions(_.withFiltersFromFile(new URI(f), hadoopConfiguration))
-        )
+        .action((f, c) => c.copyOptions(_.copy(filters = Some(new URI(f)))))
         .text(
           "The path to a file containing a list of pattern strings, one string per line, such that paths matching the pattern will be excluded from the copy."
         )
