@@ -45,7 +45,9 @@ object SparkDistCP extends Logging {
 
     val config = OptionsParsing.parse(args)
     val sparkSession = SparkSession.builder().getOrCreate()
-    val options = config.options.withFiltersFromFile(sparkSession.sparkContext.hadoopConfiguration)
+    val options = config.options.withFiltersFromFile(
+      sparkSession.sparkContext.hadoopConfiguration
+    )
     val (src, dest) = config.sourceAndDestPaths
     run(sparkSession, src, dest, options)
 
