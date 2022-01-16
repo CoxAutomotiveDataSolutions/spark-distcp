@@ -43,13 +43,11 @@ object SparkDistCP extends Logging {
     */
   def main(args: Array[String]): Unit = {
 
+    val config = OptionsParsing.parse(args)
     val sparkSession = SparkSession.builder().getOrCreate()
-
-    val config =
-      OptionsParsing.parse(args, sparkSession.sparkContext.hadoopConfiguration)
-
+    val options = config.options.withFiltersFromFile(sparkSession.sparkContext.hadoopConfiguration)
     val (src, dest) = config.sourceAndDestPaths
-    run(sparkSession, src, dest, config.options)
+    run(sparkSession, src, dest, options)
 
   }
 
