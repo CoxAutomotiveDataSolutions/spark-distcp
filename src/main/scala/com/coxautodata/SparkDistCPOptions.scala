@@ -52,21 +52,24 @@ case class SparkDistCPOptions(
     hadoopConfiguration: Configuration
   ): SparkDistCPOptions = {
 
-    val fn = filters.map(f => {
-      try {
-        val path = new Path(f)
-        val fs = path.getFileSystem(hadoopConfiguration)
+    val fn = filters
+      .map(f => {
+        try {
+          val path = new Path(f)
+          val fs = path.getFileSystem(hadoopConfiguration)
 
-        val in = fs.open(path)
+          val in = fs.open(path)
 
-        val r = scala.io.Source.fromInputStream(in).getLines().map(_.r).toList
+          val r = scala.io.Source.fromInputStream(in).getLines().map(_.r).toList
 
-        in.close()
-        r
-      } catch {
-        case e:IOException => throw new RuntimeException("Invalid filter file "+f, e)
-      }
-    }).getOrElse(List.empty)
+          in.close()
+          r
+        } catch {
+          case e: IOException =>
+            throw new RuntimeException("Invalid filter file " + f, e)
+        }
+      })
+      .getOrElse(List.empty)
 
     this.copy(filterNot = fn)
 

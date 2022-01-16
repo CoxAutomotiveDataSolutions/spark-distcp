@@ -37,10 +37,18 @@ lazy val sparkdistcp = (project in file("."))
     libraryDependencies += scopt,
     libraryDependencies ++= spark(scalaVersion.value),
     libraryDependencies += "org.scala-lang.modules" %% "scala-collection-compat" % Dependencies.collectionCompat % Provided,
-    assemblyPackageScala /assembleArtifact := false,
+    assemblyPackageScala / assembleArtifact := false,
     assembly / assemblyOption ~= {
       _.withIncludeScala(false)
     },
+    assembly / Keys.test := {},
+    assembly / artifact := {
+      val art = (assembly / artifact).value
+      art.withClassifier(Some("assembly"))
+    },
+    ThisBuild / assemblyShadeRules := Seq(
+      ShadeRule.rename("scopt.**" -> "internal.spark.distcp.scopt.@1").inAll
+    ),
     licenses := Seq(
       "APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")
     ),
@@ -85,5 +93,6 @@ lazy val sparkdistcp = (project in file("."))
     publishConfiguration := publishConfiguration.value
       .withOverwrite(isSnapshot.value),
     publishLocalConfiguration := publishLocalConfiguration.value
-      .withOverwrite(isSnapshot.value)
+      .withOverwrite(isSnapshot.value),
+    addArtifact(assembly / artifact, assembly)
   )
