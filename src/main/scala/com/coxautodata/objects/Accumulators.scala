@@ -91,7 +91,7 @@ class Accumulators(sparkSession: SparkSession) extends Serializable {
       exceptionCount.value.asScala.toSeq
         .sortWith { case ((_, v1), (_, v2)) => v1 > v2 }
         .map { case (k, v) => s"$k: ${intFormatter.format(v)}" }
-        .mkString("\n")
+        .mkString(System.getProperty("line.separator"))
   }
 
   val bytesCopied: LongAccumulator =

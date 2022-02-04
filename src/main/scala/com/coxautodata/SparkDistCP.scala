@@ -95,7 +95,8 @@ object SparkDistCP extends Logging {
       qualifiedDestinationPath.toUri,
       options.updateOverwritePathBehaviour,
       options.numListstatusThreads,
-      options.filterNot
+      options.filterNot,
+      options.missingDirectoryAction
     )
     val destinationRDD = FileListUtils.getDestinationFiles(
       sparkSession.sparkContext,

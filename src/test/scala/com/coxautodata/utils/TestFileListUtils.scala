@@ -16,7 +16,8 @@ class TestFileListUtils extends TestSpec {
           new Path(testingBaseDirPath, "src"),
           10,
           false,
-          List.empty
+          List.empty,
+          FailMissingDirectoryAction
         )
       }
     }
@@ -28,7 +29,8 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         false,
-        List.empty
+        List.empty,
+        FailMissingDirectoryAction
       ) should contain theSameElementsAs Seq.empty
     }
 
@@ -39,7 +41,8 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         true,
-        List.empty
+        List.empty,
+        FailMissingDirectoryAction
       )
         .map(f =>
           (fileStatusToResult(f._1), f._2.map(fileStatusToResult))
@@ -59,7 +62,8 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         true,
-        List.empty
+        List.empty,
+        FailMissingDirectoryAction
       )
         .map(f =>
           (fileStatusToResult(f._1), f._2.map(fileStatusToResult))
@@ -100,7 +104,8 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         false,
-        List.empty
+        List.empty,
+        FailMissingDirectoryAction
       )
         .map(f =>
           (fileStatusToResult(f._1), f._2.map(fileStatusToResult))
@@ -239,7 +244,8 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         false,
-        List(""".*/1\.file$""".r, """.*/3\.file$""".r)
+        List(""".*/1\.file$""".r, """.*/3\.file$""".r),
+        FailMissingDirectoryAction
       )
         .map(f =>
           (fileStatusToResult(f._1), f._2.map(fileStatusToResult))
@@ -311,7 +317,8 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         false,
-        List(""".*/subsub1($|/.*)""".r)
+        List(""".*/subsub1($|/.*)""".r),
+        FailMissingDirectoryAction
       )
         .map(f =>
           (fileStatusToResult(f._1), f._2.map(fileStatusToResult))
@@ -426,7 +433,8 @@ class TestFileListUtils extends TestSpec {
           new Path(testingBaseDirPath, "target").toUri,
           true,
           2,
-          List.empty
+          List.empty,
+          FailMissingDirectoryAction
         )
       }.getMessage should be(
         "Collisions found where multiple source files lead to the same destination location; check executor logs for specific collision detail."
@@ -453,7 +461,8 @@ class TestFileListUtils extends TestSpec {
           new Path(testingBaseDirPath, "source").toUri,
           true,
           2,
-          List.empty
+          List.empty,
+          FailMissingDirectoryAction
         )
       }.getMessage should be(
         "Collisions found where a file has the same source and destination location; check executor logs for specific collision detail."

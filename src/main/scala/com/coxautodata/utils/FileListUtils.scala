@@ -54,7 +54,8 @@ object FileListUtils extends Logging {
     path: Path,
     threads: Int,
     includePathRootInDependents: Boolean,
-    filterNot: List[Regex]
+    filterNot: List[Regex],
+    missingDirectoryAction: MissingDirectoryAction
   ): Seq[(SerializableFileStatus, Seq[SerializableFileStatus])] = {
 
     assert(threads > 0, "Number of threads must be positive")
@@ -93,8 +94,7 @@ object FileListUtils extends Logging {
               )
               threadsWorking.put(uuid, true)
               try {
-                localFS
-                  .listLocatedStatus(p._1)
+                missingDirectoryAction.listFiles(localFS, p._1)
                   .foreach {
                     case l if l.isSymlink =>
                       throw new RuntimeException(s"Link [$l] is not supported")
@@ -154,10 +154,12 @@ object FileListUtils extends Logging {
       throw collectedExceptions.head
     }
 
-    logInfo(s"Finished recursive list of [$path]")
+    val processedSeq = processed.iterator().asScala.toSeq // Lazy streamify?
+    val fileCount = processedSeq.count(p => p._1.isFile)
+    val dirCount = processedSeq.count(p => p._1.isDirectory)
+    logInfo(s"Finished recursive list of [$path]: $dirCount directories, $fileCount files")
 
-    processed.iterator().asScala.toSeq // Lazy streamify?
-
+    processedSeq
   }
 
   /** List all files in the given source URIs. This function will throw an
@@ -171,7 +173,8 @@ object FileListUtils extends Logging {
     destinationURI: URI,
     updateOverwritePathBehaviour: Boolean,
     numListstatusThreads: Int,
-    filterNot: List[Regex]
+    filterNot: List[Regex],
+    missingDirectoryAction: MissingDirectoryAction
   ): RDD[KeyedCopyDefinition] = {
     val sourceRDD = sourceURIs
       .map { sourceURI =>
@@ -184,7 +187,8 @@ object FileListUtils extends Logging {
               new Path(sourceURI),
               numListstatusThreads,
               !updateOverwritePathBehaviour,
-              filterNot
+              filterNot,
+              missingDirectoryAction
             )
           )
           .map { case (f, d) =>
@@ -232,7 +236,8 @@ object FileListUtils extends Logging {
           destinationPath,
           options.numListstatusThreads,
           false,
-          List.empty
+          List.empty,
+          options.missingDirectoryAction
         )
       )
       .map { case (f, _) => (f.getPath.toUri, f) }
