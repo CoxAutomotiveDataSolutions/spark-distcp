@@ -131,17 +131,13 @@ object CopyUtils extends Logging {
       )
     } else {
       val result = Try {
-        if (destFS.exists(destPath.getParent)) {
-          destFS.mkdirs(destPath)
-          DirectoryCopyResult(
-            definition.source.getPath.toUri,
-            definition.destination,
-            CopyActionResult.Created
-          )
-        } else
-          throw new FileNotFoundException(
-            s"Parent folder [${destPath.getParent}] does not exist."
-          )
+        options.missingDirectoryAction.requireDirectory(destFS, destPath.getParent)
+        options.missingDirectoryAction.createDirectory(destFS, destPath)
+        DirectoryCopyResult(
+          definition.source.getPath.toUri,
+          definition.destination,
+          CopyActionResult.Created
+        )
       }
         .recover { case _: FileAlreadyExistsException =>
           DirectoryCopyResult(
@@ -193,9 +189,9 @@ object CopyUtils extends Logging {
           destFS,
           definition.destination,
           removeExisting = false,
-          ignoreErrors = options.ignoreErrors,
+          options = options,
           taskAttemptID
-        )
+    )
       case Failure(e) if options.ignoreErrors =>
         logError(
           s"Exception whilst getting destination file information [${definition.destination}]",
@@ -223,9 +219,9 @@ object CopyUtils extends Logging {
           destFS,
           definition.destination,
           removeExisting = true,
-          ignoreErrors = options.ignoreErrors,
+          options = options,
           taskAttemptID
-        )
+    )
       case Success(d) if options.update =>
         Try {
           filesAreIdentical(
@@ -269,7 +265,7 @@ object CopyUtils extends Logging {
               destFS,
               definition.destination,
               removeExisting = true,
-              ignoreErrors = options.ignoreErrors,
+              options = options,
               taskAttemptID
             )
         }
@@ -326,7 +322,7 @@ object CopyUtils extends Logging {
     destFS: FileSystem,
     dest: URI,
     removeExisting: Boolean,
-    ignoreErrors: Boolean,
+    options: SparkDistCPOptions,
     taskAttemptID: Long
   ): FileCopyResult = {
 
@@ -342,10 +338,7 @@ object CopyUtils extends Logging {
       var out: Option[FSDataOutputStream] = None
       try {
         in = Some(sourceFS.open(sourceFile.getPath))
-        if (!destFS.exists(tempPath.getParent))
-          throw new RuntimeException(
-            s"Destination folder [${tempPath.getParent}] does not exist"
-          )
+        options.missingDirectoryAction.requireDirectory(destFS, tempPath.getParent)
         out = Some(destFS.create(tempPath, false))
         IOUtils.copyBytes(
           in.get,
@@ -354,6 +347,7 @@ object CopyUtils extends Logging {
         )
 
       } catch {
+        case e: FileNotFoundException => throw new RuntimeException(e.getMessage)
         case e: Throwable => throw e
       } finally {
         in.foreach(_.close())
@@ -397,7 +391,7 @@ object CopyUtils extends Logging {
           sourceFile.len,
           CopyActionResult.Copied
         )
-      case Failure(e) if ignoreErrors =>
+      case Failure(e) if options.ignoreErrors =>
         logError(
           s"Failed to copy file [${sourceFile.getPath}] to [$destPath]",
           e

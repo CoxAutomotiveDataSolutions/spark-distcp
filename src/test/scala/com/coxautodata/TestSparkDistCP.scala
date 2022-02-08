@@ -1,57 +1,63 @@
 package com.coxautodata
 
 import com.coxautodata.SparkDistCP._
-import com.coxautodata.objects.{
-  CopyDefinitionWithDependencies,
-  CopyPartitioner,
-  Directory,
-  File,
-  SerializableFileStatus
-}
-import com.coxautodata.utils.FileListUtils.listFiles
-import com.coxautodata.utils.FileListing
-import org.apache.hadoop.fs.Path
+import com.coxautodata.TestSparkDistCP.listFiles
+import com.coxautodata.objects.{CopyDefinitionWithDependencies, CopyPartitioner, Directory, File, FileType, SerializableFileStatus}
+import com.coxautodata.utils.{FailMissingDirectoryAction, FileListUtils, FileListing}
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 
 class TestSparkDistCP extends TestSpec {
+  def copyDefinitionWithDependencies(src: String, dest: String, len: Long, ft: FileType): CopyDefinitionWithDependencies =
+    CopyDefinitionWithDependencies(
+      SerializableFileStatus(new Path(src).toUri, len, ft),
+      new Path(dest).toUri,
+      Seq.empty
+    )
+
+  def copyDefinitions(): List[CopyDefinitionWithDependencies] = {
+    List(
+      copyDefinitionWithDependencies("/one", "/dest/one", 0, Directory),
+      copyDefinitionWithDependencies("/two", "/dest/two", 0, Directory),
+      copyDefinitionWithDependencies("/three", "/dest/three", 0, Directory),
+      copyDefinitionWithDependencies("/file1", "/dest/file1", 1500, File),
+      copyDefinitionWithDependencies("/file2", "/dest/file2", 20, File),
+      copyDefinitionWithDependencies("/file3", "/dest/file3", 500, File)
+    )
+  }
+
+  def fileListing(name: String, length: Option[Long]): FileListing =
+    FileListing(new Path(testingBaseDirPath, name).toString, length)
+
+  def fileListings(): Seq[FileListing] = {
+    Seq(
+      fileListing("src", None),
+      fileListing("dest", None),
+      fileListing("src/1.file", Some(10)),
+      fileListing("src/2.file", Some(10)),
+      fileListing("src/3.file", Some(10)),
+      fileListing("src/sub1", None),
+      fileListing("src/sub2", None),
+      fileListing("src/sub2/subsub1", None),
+      fileListing("src/sub1/1.file", Some(15)),
+      fileListing("src/sub1/2.file", Some(15)),
+      fileListing("src/sub1/3.file", Some(15)),
+      fileListing("src/sub2/1.file", Some(15)),
+      fileListing("src/sub2/2.file", Some(15)),
+      fileListing("src/sub2/3.file", Some(15)),
+      fileListing("src/sub2/subsub1/1.file", Some(23))
+    )
+  }
+
+  def files(): List[String] = fileListings().filter(_.length.nonEmpty)
+    .map(_.name.substring(testingBaseDirPath.toString.length + 1)).toList
 
   describe("generateBatchedFileKeys") {
 
     it("batch files correctly") {
 
-      val in = List(
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/one").toUri, 0, Directory),
-          new Path("/dest/one").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/two").toUri, 0, Directory),
-          new Path("/dest/two").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/three").toUri, 0, Directory),
-          new Path("/dest/three").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/file1").toUri, 1500, File),
-          new Path("/dest/file1").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/file2").toUri, 20, File),
-          new Path("/dest/file2").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/file3").toUri, 500, File),
-          new Path("/dest/file3").toUri,
-          Seq.empty
-        )
-      )
+      val in = copyDefinitions()
 
       generateBatchedFileKeys(3, 2000)(1, in.iterator).toSeq
         .map { case (k, c) =>
@@ -69,6 +75,7 @@ class TestSparkDistCP extends TestSpec {
 
   }
 
+
   describe("batchAndPartitionFiles") {
 
     it("correctly partition files with 2 input partitions") {
@@ -76,38 +83,7 @@ class TestSparkDistCP extends TestSpec {
         new SparkConf().setAppName("test").setMaster("local[1]")
       )
 
-      val in = List(
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/one").toUri, 0, Directory),
-          new Path("/dest/one").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/two").toUri, 0, Directory),
-          new Path("/dest/two").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/three").toUri, 0, Directory),
-          new Path("/dest/three").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/file1").toUri, 1500, File),
-          new Path("/dest/file1").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/file2").toUri, 20, File),
-          new Path("/dest/file2").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/file3").toUri, 500, File),
-          new Path("/dest/file3").toUri,
-          Seq.empty
-        )
-      )
+      val in = copyDefinitions()
 
       val inRDD = spark
         .parallelize(in)
@@ -141,36 +117,12 @@ class TestSparkDistCP extends TestSpec {
       )
 
       val in = List(
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/one").toUri, 0, Directory),
-          new Path("/dest/one").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/two").toUri, 0, Directory),
-          new Path("/dest/two").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/three").toUri, 0, Directory),
-          new Path("/dest/three").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/file1").toUri, 1500, File),
-          new Path("/dest/file1").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/file2").toUri, 20, File),
-          new Path("/dest/file2").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/file3").toUri, 1990, File),
-          new Path("/dest/file3").toUri,
-          Seq.empty
-        )
+        copyDefinitionWithDependencies("/one", "/dest/one", 0, Directory),
+        copyDefinitionWithDependencies("/two", "/dest/two", 0, Directory),
+        copyDefinitionWithDependencies("/three", "/dest/three", 0, Directory),
+        copyDefinitionWithDependencies("/file1", "/dest/file1", 1500, File),
+        copyDefinitionWithDependencies("/file2", "/dest/file2", 20, File),
+        copyDefinitionWithDependencies("/file3", "/dest/file3", 1990, File)
       )
 
       val inRDD = spark
@@ -205,21 +157,9 @@ class TestSparkDistCP extends TestSpec {
       )
 
       val in = List(
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/1").toUri, 1, File),
-          new Path("/dest/file1").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/3").toUri, 3000, File),
-          new Path("/dest/file3").toUri,
-          Seq.empty
-        ),
-        CopyDefinitionWithDependencies(
-          SerializableFileStatus(new Path("/2").toUri, 1, File),
-          new Path("/dest/file2").toUri,
-          Seq.empty
-        )
+        copyDefinitionWithDependencies("/1", "/dest/file1", 1, File),
+        copyDefinitionWithDependencies("/3", "/dest/file3", 3000, File),
+        copyDefinitionWithDependencies("/2", "/dest/file2", 1, File)
       )
 
       val inRDD = spark
@@ -248,130 +188,31 @@ class TestSparkDistCP extends TestSpec {
 
       val spark = SparkSession.builder().master("local[*]").getOrCreate()
 
-      val input = List(
-        "src/1.file",
-        "src/2.file",
-        "src/3.file",
-        "src/sub1/1.file",
-        "src/sub1/2.file",
-        "src/sub1/3.file",
-        "src/sub2/1.file",
-        "src/sub2/2.file",
-        "src/sub2/3.file",
-        "src/sub2/subsub1/1.file"
-      )
+      val input = files()
 
-      val sourceOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "src").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "src/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
-      )
+      val sourceOnlyResult = fileListings()
 
       val destOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "dest/src").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
+        fileListing("dest/src", None),
+        fileListing("dest/src/1.file", Some(10)),
+        fileListing("dest/src/2.file", Some(10)),
+        fileListing("dest/src/3.file", Some(10)),
+        fileListing("dest/src/sub1", None),
+        fileListing("dest/src/sub2", None),
+        fileListing("dest/src/sub2/subsub1", None),
+        fileListing("dest/src/sub1/1.file", Some(15)),
+        fileListing("dest/src/sub1/2.file", Some(15)),
+        fileListing("dest/src/sub1/3.file", Some(15)),
+        fileListing("dest/src/sub2/1.file", Some(15)),
+        fileListing("dest/src/sub2/2.file", Some(15)),
+        fileListing("dest/src/sub2/3.file", Some(15)),
+        fileListing("dest/src/sub2/subsub1/1.file", Some(23))
       )
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
       localFileSystem.mkdirs(new Path(testingBaseDirPath, "dest"))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -383,7 +224,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(dryRun = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -395,7 +236,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions()
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -408,114 +249,27 @@ class TestSparkDistCP extends TestSpec {
 
       val spark = SparkSession.builder().master("local[*]").getOrCreate()
 
-      val input = List(
-        "src/1.file",
-        "src/2.file",
-        "src/3.file",
-        "src/sub1/1.file",
-        "src/sub1/2.file",
-        "src/sub1/3.file",
-        "src/sub2/1.file",
-        "src/sub2/2.file",
-        "src/sub2/3.file",
-        "src/sub2/subsub1/1.file"
-      )
+      val input = files()
 
-      val sourceOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "src").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "src/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
-      )
+      val sourceOnlyResult = fileListings()
 
       val destOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "dest/src").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/3.file").toString,
-          Some(15)
-        )
+        fileListing("dest/src", None),
+        fileListing("dest/src/2.file", Some(10)),
+        fileListing("dest/src/3.file", Some(10)),
+        fileListing("dest/src/sub1", None),
+        fileListing("dest/src/sub2", None),
+        fileListing("dest/src/sub2/subsub1", None),
+        fileListing("dest/src/sub1/2.file", Some(15)),
+        fileListing("dest/src/sub1/3.file", Some(15)),
+        fileListing("dest/src/sub2/2.file", Some(15)),
+        fileListing("dest/src/sub2/3.file", Some(15))
       )
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
       localFileSystem.mkdirs(new Path(testingBaseDirPath, "dest"))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -527,7 +281,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(dryRun = true, filterNot = List(""".*/1\.file$""".r))
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -539,7 +293,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(filterNot = List(""".*/1\.file$""".r))
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -552,123 +306,30 @@ class TestSparkDistCP extends TestSpec {
 
       val spark = SparkSession.builder().master("local[*]").getOrCreate()
 
-      val input = List(
-        "src/1.file",
-        "src/2.file",
-        "src/3.file",
-        "src/sub1/1.file",
-        "src/sub1/2.file",
-        "src/sub1/3.file",
-        "src/sub2/1.file",
-        "src/sub2/2.file",
-        "src/sub2/3.file",
-        "src/sub2/subsub1/1.file"
-      )
+      val input = files()
 
-      val sourceOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "src").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "src/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
-      )
+      val sourceOnlyResult = fileListings()
 
       val destOnlyResult = Seq(
-        FileListing(
-          new Path(testingBaseDirPath, "dest/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "dest/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
+        fileListing("dest/1.file", Some(10)),
+        fileListing("dest/2.file", Some(10)),
+        fileListing("dest/3.file", Some(10)),
+        fileListing("dest/sub1", None),
+        fileListing("dest/sub2", None),
+        fileListing("dest/sub2/subsub1", None),
+        fileListing("dest/sub1/1.file", Some(15)),
+        fileListing("dest/sub1/2.file", Some(15)),
+        fileListing("dest/sub1/3.file", Some(15)),
+        fileListing("dest/sub2/1.file", Some(15)),
+        fileListing("dest/sub2/2.file", Some(15)),
+        fileListing("dest/sub2/3.file", Some(15)),
+        fileListing("dest/sub2/subsub1/1.file", Some(23))
       )
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
       localFileSystem.mkdirs(new Path(testingBaseDirPath, "dest"))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -680,7 +341,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(dryRun = true, update = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -692,7 +353,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(update = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -724,137 +385,37 @@ class TestSparkDistCP extends TestSpec {
         "dest/subb/c.file"
       )
 
-      val sourceOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "src").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "src/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
-      )
+      val sourceOnlyResult = fileListings()
 
       val destExisting = Seq(
-        FileListing(
-          new Path(testingBaseDirPath, "dest/a.file").toString,
-          Some(11)
-        ),
-        FileListing(new Path(testingBaseDirPath, "dest/suba").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest/subb").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/suba/b.file").toString,
-          Some(16)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/suba/c.file").toString,
-          Some(16)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/subb/c.file").toString,
-          Some(16)
-        )
+        fileListing("dest/a.file", Some(11)),
+        fileListing("dest/suba", None),
+        fileListing("dest/subb", None),
+        fileListing("dest/suba/b.file", Some(16)),
+        fileListing("dest/suba/c.file", Some(16)),
+        fileListing("dest/subb/c.file", Some(16))
       )
 
       val destOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "dest/src").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
+        fileListing("dest/src", None),
+        fileListing("dest/src/1.file", Some(10)),
+        fileListing("dest/src/2.file", Some(10)),
+        fileListing("dest/src/3.file", Some(10)),
+        fileListing("dest/src/sub1", None),
+        fileListing("dest/src/sub2", None),
+        fileListing("dest/src/sub2/subsub1", None),
+        fileListing("dest/src/sub1/1.file", Some(15)),
+        fileListing("dest/src/sub1/2.file", Some(15)),
+        fileListing("dest/src/sub1/3.file", Some(15)),
+        fileListing("dest/src/sub2/1.file", Some(15)),
+        fileListing("dest/src/sub2/2.file", Some(15)),
+        fileListing("dest/src/sub2/3.file", Some(15)),
+        fileListing("dest/src/sub2/subsub1/1.file", Some(23))
       )
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -871,7 +432,7 @@ class TestSparkDistCP extends TestSpec {
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -887,7 +448,7 @@ class TestSparkDistCP extends TestSpec {
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -917,130 +478,36 @@ class TestSparkDistCP extends TestSpec {
         "dest/subb/c.file"
       )
 
-      val sourceOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "src").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "src/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
-      )
+      val sourceOnlyResult = fileListings()
 
       val destExisting = Seq(
-        FileListing(
-          new Path(testingBaseDirPath, "dest/a.file").toString,
-          Some(11)
-        ),
-        FileListing(new Path(testingBaseDirPath, "dest/suba").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest/subb").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/suba/b.file").toString,
-          Some(16)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/suba/c.file").toString,
-          Some(16)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/subb/c.file").toString,
-          Some(16)
-        )
+        fileListing("dest/a.file", Some(11)),
+        fileListing("dest/suba", None),
+        fileListing("dest/subb", None),
+        fileListing("dest/suba/b.file", Some(16)),
+        fileListing("dest/suba/c.file", Some(16)),
+        fileListing("dest/subb/c.file", Some(16))
       )
 
       val destOnlyResult = Seq(
-        FileListing(
-          new Path(testingBaseDirPath, "dest/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "dest/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
+        fileListing("dest/1.file", Some(10)),
+        fileListing("dest/2.file", Some(10)),
+        fileListing("dest/3.file", Some(10)),
+        fileListing("dest/sub1", None),
+        fileListing("dest/sub2", None),
+        fileListing("dest/sub2/subsub1", None),
+        fileListing("dest/sub1/1.file", Some(15)),
+        fileListing("dest/sub1/2.file", Some(15)),
+        fileListing("dest/sub1/3.file", Some(15)),
+        fileListing("dest/sub2/1.file", Some(15)),
+        fileListing("dest/sub2/2.file", Some(15)),
+        fileListing("dest/sub2/3.file", Some(15)),
+        fileListing("dest/sub2/subsub1/1.file", Some(23))
       )
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1052,7 +519,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(dryRun = true, overwrite = true, delete = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1064,7 +531,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(overwrite = true, delete = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -1097,125 +564,34 @@ class TestSparkDistCP extends TestSpec {
         "dest/subb/c.file"
       )
 
-      val sourceOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "src").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "src/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
-      )
+      val sourceOnlyResult = fileListings()
 
       val destExisting = Seq(
-        FileListing(
-          new Path(testingBaseDirPath, "dest/a.file").toString,
-          Some(11)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/c.file").toString,
-          Some(11)
-        ),
-        FileListing(new Path(testingBaseDirPath, "dest/suba").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest/subb").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/suba/b.file").toString,
-          Some(16)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/suba/c.file").toString,
-          Some(16)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/subb/c.file").toString,
-          Some(16)
-        )
+        fileListing("dest/a.file", Some(11)),
+        fileListing("dest/c.file", Some(11)),
+        fileListing("dest/suba", None),
+        fileListing("dest/subb", None),
+        fileListing("dest/suba/b.file", Some(16)),
+        fileListing("dest/suba/c.file", Some(16)),
+        fileListing("dest/subb/c.file", Some(16))
       )
 
       val destOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "dest/src").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/src/sub2/3.file").toString,
-          Some(15)
-        )
+        fileListing("dest/src", None),
+        fileListing("dest/src/2.file", Some(10)),
+        fileListing("dest/src/3.file", Some(10)),
+        fileListing("dest/src/sub1", None),
+        fileListing("dest/src/sub2", None),
+        fileListing("dest/src/sub2/subsub1", None),
+        fileListing("dest/src/sub1/2.file", Some(15)),
+        fileListing("dest/src/sub1/3.file", Some(15)),
+        fileListing("dest/src/sub2/2.file", Some(15)),
+        fileListing("dest/src/sub2/3.file", Some(15))
       )
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1233,7 +609,7 @@ class TestSparkDistCP extends TestSpec {
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1250,7 +626,7 @@ class TestSparkDistCP extends TestSpec {
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -1281,118 +657,33 @@ class TestSparkDistCP extends TestSpec {
         "dest/subb/c.file"
       )
 
-      val sourceOnlyResult = Seq(
-        FileListing(new Path(testingBaseDirPath, "src").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/1.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "src/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/1.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "src/sub2/subsub1/1.file").toString,
-          Some(23)
-        )
-      )
+      val sourceOnlyResult = fileListings()
 
       val destExisting = Seq(
-        FileListing(
-          new Path(testingBaseDirPath, "dest/a.file").toString,
-          Some(11)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/c.file").toString,
-          Some(11)
-        ),
-        FileListing(new Path(testingBaseDirPath, "dest/suba").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest/subb").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/suba/b.file").toString,
-          Some(16)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/suba/c.file").toString,
-          Some(16)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/subb/c.file").toString,
-          Some(16)
-        )
+        fileListing("dest/a.file", Some(11)),
+        fileListing("dest/c.file", Some(11)),
+        fileListing("dest/suba", None),
+        fileListing("dest/subb", None),
+        fileListing("dest/suba/b.file", Some(16)),
+        fileListing("dest/suba/c.file", Some(16)),
+        fileListing("dest/subb/c.file", Some(16))
       )
 
       val destOnlyResult = Seq(
-        FileListing(
-          new Path(testingBaseDirPath, "dest/2.file").toString,
-          Some(10)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/3.file").toString,
-          Some(10)
-        ),
-        FileListing(new Path(testingBaseDirPath, "dest/sub1").toString, None),
-        FileListing(new Path(testingBaseDirPath, "dest/sub2").toString, None),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/subsub1").toString,
-          None
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub1/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub1/3.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/2.file").toString,
-          Some(15)
-        ),
-        FileListing(
-          new Path(testingBaseDirPath, "dest/sub2/3.file").toString,
-          Some(15)
-        )
+        fileListing("dest/2.file", Some(10)),
+        fileListing("dest/3.file", Some(10)),
+        fileListing("dest/sub1", None),
+        fileListing("dest/sub2", None),
+        fileListing("dest/sub2/subsub1", None),
+        fileListing("dest/sub1/2.file", Some(15)),
+        fileListing("dest/sub1/3.file", Some(15)),
+        fileListing("dest/sub2/2.file", Some(15)),
+        fileListing("dest/sub2/3.file", Some(15))
       )
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1409,7 +700,7 @@ class TestSparkDistCP extends TestSpec {
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1425,7 +716,7 @@ class TestSparkDistCP extends TestSpec {
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -1438,18 +729,7 @@ class TestSparkDistCP extends TestSpec {
 
       val spark = SparkSession.builder().master("local[*]").getOrCreate()
 
-      val input = List(
-        "src/1.file",
-        "src/2.file",
-        "src/3.file",
-        "src/sub1/1.file",
-        "src/sub1/2.file",
-        "src/sub1/3.file",
-        "src/sub2/1.file",
-        "src/sub2/2.file",
-        "src/sub2/3.file",
-        "src/sub2/subsub1/1.file"
-      )
+      val input = files()
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
       localFileSystem.mkdirs(new Path(testingBaseDirPath, "dest"))
@@ -1529,4 +809,9 @@ class TestSparkDistCP extends TestSpec {
 
   }
 
+}
+
+object TestSparkDistCP {
+  def listFiles(fs: FileSystem, path: Path): Seq[(SerializableFileStatus, Seq[SerializableFileStatus])]
+  = FileListUtils.listFiles(fs, path, 10, false, List.empty, FailMissingDirectoryAction)
 }

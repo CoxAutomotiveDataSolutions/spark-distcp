@@ -50,7 +50,7 @@ class TestCopyUtils extends TestSpec {
         localFileSystem,
         destPath.toUri,
         removeExisting = false,
-        ignoreErrors = false,
+        SparkDistCPOptions(),
         taskAttemptID = 1
       )
 
@@ -83,7 +83,7 @@ class TestCopyUtils extends TestSpec {
         localFileSystem,
         destPath.toUri,
         removeExisting = true,
-        ignoreErrors = false,
+        SparkDistCPOptions(),
         taskAttemptID = 1
       )
 
@@ -109,7 +109,7 @@ class TestCopyUtils extends TestSpec {
           localFileSystem,
           destPath.toUri,
           removeExisting = false,
-          ignoreErrors = false,
+          new SparkDistCPOptions(),
           taskAttemptID = 1
         )
       }
@@ -120,7 +120,7 @@ class TestCopyUtils extends TestSpec {
         localFileSystem,
         destPath.toUri,
         removeExisting = false,
-        ignoreErrors = true,
+        SparkDistCPOptions(ignoreErrors=true),
         taskAttemptID = 2
       ).getMessage should be(
         s"Source: [${source.getPath.toUri}], Destination: [$destPath], " +
@@ -355,7 +355,7 @@ class TestCopyUtils extends TestSpec {
       ).getMessage should be(
         s"Source: [${source.getPath.toUri}], " +
           s"Destination: [$destPath], Type: [FileCopy: 1 bytes], " +
-          s"Result: [Failed: Destination folder [${destPath.getParent}] does not exist]"
+          s"Result: [Failed: Folder [${destPath.getParent}] does not exist.]"
       )
 
     }

@@ -1,7 +1,9 @@
 package com.coxautodata
 
-import java.net.URI
+import com.coxautodata.utils.DirectoryUtils.missingDirectoryAction
+import com.coxautodata.utils.{DirectoryUtils, MissingDirectoryAction}
 
+import java.net.URI
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 
@@ -63,6 +65,10 @@ object OptionsParsing {
       opt[Long]("maxBytesPerTask")
         .action((i, c) => c.copyOptions(_.copy(maxBytesPerTask = i)))
         .text("Maximum number of bytes to copy in a single Spark task")
+
+      opt[String]("onMissingDirectory")
+        .action((s, c) => c.copyOptions(_.copy(missingDirectoryAction = missingDirectoryAction(s))))
+        .text("Behaviour when source or target does not exist: either fail (default), create or log")
 
       help("help").text("prints this usage text")
 

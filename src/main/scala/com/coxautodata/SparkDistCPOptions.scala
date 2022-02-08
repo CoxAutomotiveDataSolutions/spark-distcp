@@ -1,5 +1,6 @@
 package com.coxautodata
 
+import com.coxautodata.utils.{FailMissingDirectoryAction, MissingDirectoryAction}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 
@@ -24,7 +25,8 @@ case class SparkDistCPOptions(
   filters: Option[URI] = SparkDistCPOptions.Defaults.filters,
   filterNot: List[Regex] = SparkDistCPOptions.Defaults.filterNot,
   numListstatusThreads: Int = SparkDistCPOptions.Defaults.numListstatusThreads,
-  verbose: Boolean = SparkDistCPOptions.Defaults.verbose
+  verbose: Boolean = SparkDistCPOptions.Defaults.verbose,
+  missingDirectoryAction: MissingDirectoryAction = SparkDistCPOptions.Defaults.missingDirectoryAction
 ) {
 
   val updateOverwritePathBehaviour: Boolean =
@@ -93,6 +95,7 @@ object SparkDistCPOptions {
     val filterNot: List[Regex] = List.empty
     val numListstatusThreads: Int = 10
     val verbose: Boolean = false
+    val missingDirectoryAction : MissingDirectoryAction = FailMissingDirectoryAction
   }
 
 }
