@@ -92,15 +92,15 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
     }
 
-    it("filters flag") {
+    it("excludes flag") {
 
-      val filtersFile = this.getClass.getResource("test.filters").getPath
+      val excludesFile = this.getClass.getResource("test.filters").getPath
       val conf = OptionsParsing.parse(
-        Array("--filters", filtersFile, "src", "dest")
+        Array("--excludes", excludesFile, "src", "dest")
       )
       conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
       val options = conf.options.withFiltersFromFile(new Configuration())
-      options.filterNot.map(_.toString()) should be(
+      options.excludesRegex.map(_.toString()) should be(
         List(
           ".*/_temporary($|/.*)",
           ".*/_committed.*",
@@ -108,7 +108,28 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
           ".*/_SUCCESS.*"
         )
       )
-      val resetOptions = options.copy(filters = None).withFiltersFromFile(new Configuration())
+      val resetOptions = options.copy(excludes = None).withFiltersFromFile(new Configuration())
+      resetOptions should be(SparkDistCPOptions())
+
+    }
+
+    it("includes flag") {
+
+      val includesFile = this.getClass.getResource("test.filters").getPath
+      val conf = OptionsParsing.parse(
+        Array("--includes", includesFile, "src", "dest")
+      )
+      conf.sourceAndDestPaths should be(Seq(new Path("src")), new Path("dest"))
+      val options = conf.options.withFiltersFromFile(new Configuration())
+      options.includesRegex.map(_.toString()) should be(
+        List(
+          ".*/_temporary($|/.*)",
+          ".*/_committed.*",
+          ".*/_started.*",
+          ".*/_SUCCESS.*"
+        )
+      )
+      val resetOptions = options.copy(includes = None).withFiltersFromFile(new Configuration())
       resetOptions should be(SparkDistCPOptions())
 
     }
@@ -181,7 +202,7 @@ class TestOptionsParsing extends AnyFunSpec with Matchers {
 
       intercept[RuntimeException] {
         OptionsParsing.parse(
-          Array("--filters", "none", "src", "dest")
+          Array("--excludes", "none", "src", "dest")
         ).options.withFiltersFromFile(new Configuration())
       }.getMessage should be("Invalid filter file none")
 

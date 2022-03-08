@@ -36,8 +36,14 @@ object OptionsParsing {
         .action((_, c) => c.copyOptions(_.copy(update = true)))
         .text("Overwrite if source and destination differ in size, or checksum")
 
-      opt[String]("filters")
-        .action((f, c) => c.copyOptions(_.copy(filters = Some(new URI(f)))))
+      opt[String]("includes")
+        .action((f, c) => c.copyOptions(_.copy(includes = Some(new URI(f)))))
+        .text(
+          "The path to a file containing a list of pattern strings, one string per line, such that paths matching the pattern will be included in the copy."
+        )
+
+      opt[String]("excludes")
+        .action((f, c) => c.copyOptions(_.copy(excludes = Some(new URI(f)))))
         .text(
           "The path to a file containing a list of pattern strings, one string per line, such that paths matching the pattern will be excluded from the copy."
         )

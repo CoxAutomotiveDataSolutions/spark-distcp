@@ -16,6 +16,7 @@ class TestFileListUtils extends TestSpec {
           new Path(testingBaseDirPath, "src"),
           10,
           false,
+          List.empty,
           List.empty
         )
       }
@@ -28,6 +29,7 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         false,
+        List.empty,
         List.empty
       ) should contain theSameElementsAs Seq.empty
     }
@@ -39,6 +41,7 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         true,
+        List.empty,
         List.empty
       )
         .map(f =>
@@ -59,6 +62,7 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         true,
+        List.empty,
         List.empty
       )
         .map(f =>
@@ -100,6 +104,7 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         false,
+        List.empty,
         List.empty
       )
         .map(f =>
@@ -217,7 +222,7 @@ class TestFileListUtils extends TestSpec {
 
     }
 
-    it("Should list all files in folder with a filter") {
+    it("Should list all files in folder if included") {
 
       val input = List(
         "src/1.file",
@@ -239,6 +244,79 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         false,
+        List(("^"+new Path(testingBaseDirPath, "src/sub1")+"/.*").r),
+        List.empty,
+      )
+        .map(f =>
+          (fileStatusToResult(f._1), f._2.map(fileStatusToResult))
+        ) should contain theSameElementsAs Seq(
+        (
+          FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None),
+          List()
+        ),
+        (
+          FileListing(new Path(testingBaseDirPath, "src/sub2").toString, None),
+          List()
+        ),
+        (
+          FileListing(
+            new Path(testingBaseDirPath, "src/sub1/1.file").toString,
+            Some(15)
+          ),
+          List(
+            FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None)
+          )
+        ),
+        (
+          FileListing(
+            new Path(testingBaseDirPath, "src/sub1/2.file").toString,
+            Some(15)
+          ),
+          List(
+            FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None)
+          )
+        ),
+        (
+          FileListing(
+            new Path(testingBaseDirPath, "src/sub1/3.file").toString,
+            Some(15)
+          ),
+          List(
+            FileListing(new Path(testingBaseDirPath, "src/sub1").toString, None)
+          )
+        ),
+        (
+          FileListing(new Path(testingBaseDirPath, "src/sub2/subsub1").toString, None),
+          List(
+            FileListing(new Path(testingBaseDirPath, "src/sub2").toString, None)
+          )
+        ),
+      )
+    }
+
+    it("Should list all files in folder except excluded") {
+
+      val input = List(
+        "src/1.file",
+        "src/2.file",
+        "src/3.file",
+        "src/sub1/1.file",
+        "src/sub1/2.file",
+        "src/sub1/3.file",
+        "src/sub2/1.file",
+        "src/sub2/2.file",
+        "src/sub2/3.file",
+        "src/sub2/subsub1/1.file"
+      )
+
+      input.foreach(f => createFile(new Path(f), f.getBytes))
+
+      listFiles(
+        localFileSystem,
+        new Path(testingBaseDirPath, "src"),
+        10,
+        false,
+        List.empty,
         List(""".*/1\.file$""".r, """.*/3\.file$""".r)
       )
         .map(f =>
@@ -289,7 +367,7 @@ class TestFileListUtils extends TestSpec {
       )
     }
 
-    it("Should list all files in folder with a folder filter") {
+    it("Should list all files in folder with a folder except excluded") {
 
       val input = List(
         "src/1.file",
@@ -311,6 +389,7 @@ class TestFileListUtils extends TestSpec {
         new Path(testingBaseDirPath, "src"),
         10,
         false,
+        List.empty,
         List(""".*/subsub1($|/.*)""".r)
       )
         .map(f =>
@@ -426,6 +505,7 @@ class TestFileListUtils extends TestSpec {
           new Path(testingBaseDirPath, "target").toUri,
           true,
           2,
+          List.empty,
           List.empty
         )
       }.getMessage should be(
@@ -453,6 +533,7 @@ class TestFileListUtils extends TestSpec {
           new Path(testingBaseDirPath, "source").toUri,
           true,
           2,
+          List.empty,
           List.empty
         )
       }.getMessage should be(
