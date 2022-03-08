@@ -371,7 +371,7 @@ class TestSparkDistCP extends TestSpec {
       input.foreach(f => createFile(new Path(f), f.getBytes))
       localFileSystem.mkdirs(new Path(testingBaseDirPath, "dest"))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -383,7 +383,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(dryRun = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -395,7 +395,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions()
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -515,7 +515,7 @@ class TestSparkDistCP extends TestSpec {
       input.foreach(f => createFile(new Path(f), f.getBytes))
       localFileSystem.mkdirs(new Path(testingBaseDirPath, "dest"))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -524,10 +524,10 @@ class TestSparkDistCP extends TestSpec {
         spark,
         Seq(new Path(testingBaseDirPath, "src")),
         new Path(testingBaseDirPath, "dest"),
-        SparkDistCPOptions(dryRun = true, filterNot = List(""".*/1\.file$""".r))
+        SparkDistCPOptions(dryRun = true, excludesRegex = List(""".*/1\.file$""".r))
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -536,10 +536,10 @@ class TestSparkDistCP extends TestSpec {
         spark,
         Seq(new Path(testingBaseDirPath, "src")),
         new Path(testingBaseDirPath, "dest"),
-        SparkDistCPOptions(filterNot = List(""".*/1\.file$""".r))
+        SparkDistCPOptions(excludesRegex = List(""".*/1\.file$""".r))
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -668,7 +668,7 @@ class TestSparkDistCP extends TestSpec {
       input.foreach(f => createFile(new Path(f), f.getBytes))
       localFileSystem.mkdirs(new Path(testingBaseDirPath, "dest"))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -680,7 +680,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(dryRun = true, update = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs sourceOnlyResult
@@ -692,7 +692,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(update = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -854,7 +854,7 @@ class TestSparkDistCP extends TestSpec {
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -871,7 +871,7 @@ class TestSparkDistCP extends TestSpec {
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -887,7 +887,7 @@ class TestSparkDistCP extends TestSpec {
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -1040,7 +1040,7 @@ class TestSparkDistCP extends TestSpec {
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1052,7 +1052,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(dryRun = true, overwrite = true, delete = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1064,7 +1064,7 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(overwrite = true, delete = true)
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -1215,7 +1215,7 @@ class TestSparkDistCP extends TestSpec {
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1229,11 +1229,11 @@ class TestSparkDistCP extends TestSpec {
           consistentPathBehaviour = true,
           overwrite = true,
           delete = true,
-          filterNot = List(""".*/1\.file$""".r, """.*/c\.file$""".r)
+          excludesRegex = List(""".*/1\.file$""".r, """.*/c\.file$""".r)
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1246,11 +1246,11 @@ class TestSparkDistCP extends TestSpec {
           consistentPathBehaviour = true,
           overwrite = true,
           delete = true,
-          filterNot = List(""".*/1\.file$""".r, """.*/c\.file$""".r)
+          excludesRegex = List(""".*/1\.file$""".r, """.*/c\.file$""".r)
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)
@@ -1392,7 +1392,7 @@ class TestSparkDistCP extends TestSpec {
 
       input.foreach(f => createFile(new Path(f), f.getBytes))
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1405,11 +1405,11 @@ class TestSparkDistCP extends TestSpec {
           dryRun = true,
           overwrite = true,
           delete = true,
-          filterNot = List(""".*/1\.file$""".r, """.*/c\.file$""".r)
+          excludesRegex = List(""".*/1\.file$""".r, """.*/c\.file$""".r)
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destExisting)
@@ -1421,11 +1421,11 @@ class TestSparkDistCP extends TestSpec {
         SparkDistCPOptions(
           overwrite = true,
           delete = true,
-          filterNot = List(""".*/1\.file$""".r, """.*/c\.file$""".r)
+          excludesRegex = List(""".*/1\.file$""".r, """.*/c\.file$""".r)
         )
       )
 
-      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty)
+      listFiles(localFileSystem, testingBaseDirPath, 10, false, List.empty, List.empty)
         .map(f =>
           fileStatusToResult(f._1)
         ) should contain theSameElementsAs (sourceOnlyResult ++ destOnlyResult)

@@ -21,8 +21,10 @@ case class SparkDistCPOptions(
     SparkDistCPOptions.Defaults.consistentPathBehaviour,
   maxFilesPerTask: Int = SparkDistCPOptions.Defaults.maxFilesPerTask,
   maxBytesPerTask: Long = SparkDistCPOptions.Defaults.maxBytesPerTask,
-  filters: Option[URI] = SparkDistCPOptions.Defaults.filters,
-  filterNot: List[Regex] = SparkDistCPOptions.Defaults.filterNot,
+  includes: Option[URI] = SparkDistCPOptions.Defaults.includes,
+  includesRegex: List[Regex] = SparkDistCPOptions.Defaults.includesRegex,
+  excludes: Option[URI] = SparkDistCPOptions.Defaults.excludes,
+  excludesRegex: List[Regex] = SparkDistCPOptions.Defaults.excludesRegex,
   numListstatusThreads: Int = SparkDistCPOptions.Defaults.numListstatusThreads,
   verbose: Boolean = SparkDistCPOptions.Defaults.verbose
 ) {
@@ -52,27 +54,8 @@ case class SparkDistCPOptions(
     hadoopConfiguration: Configuration
   ): SparkDistCPOptions = {
 
-    val fn = filters
-      .map(f => {
-        try {
-          val path = new Path(f)
-          val fs = path.getFileSystem(hadoopConfiguration)
-
-          val in = fs.open(path)
-
-          val r = scala.io.Source.fromInputStream(in).getLines().map(_.r).toList
-
-          in.close()
-          r
-        } catch {
-          case e: IOException =>
-            throw new RuntimeException("Invalid filter file " + f, e)
-        }
-      })
-      .getOrElse(List.empty)
-
-    this.copy(filterNot = fn)
-
+    this.copy(includesRegex = includes.map(SparkDistCPOptions.loadFiltersFromFile(hadoopConfiguration, _)).getOrElse(List.empty),
+      excludesRegex = excludes.map(SparkDistCPOptions.loadFiltersFromFile(hadoopConfiguration, _)).getOrElse(List.empty))
   }
 
 }
@@ -89,10 +72,29 @@ object SparkDistCPOptions {
     val consistentPathBehaviour: Boolean = false
     val maxFilesPerTask: Int = 1000
     val maxBytesPerTask: Long = 1073741824L
-    val filters: Option[URI] = None
-    val filterNot: List[Regex] = List.empty
+    val includes: Option[URI] = None
+    val includesRegex: List[Regex] = List.empty
+    val excludes: Option[URI] = None
+    val excludesRegex: List[Regex] = List.empty
     val numListstatusThreads: Int = 10
     val verbose: Boolean = false
+  }
+
+  private def loadFiltersFromFile(hadoopConfiguration: Configuration, f: URI): List[Regex] = {
+    try {
+      val path = new Path (f)
+      val fs = path.getFileSystem (hadoopConfiguration)
+
+      val in = fs.open (path)
+
+      val r = scala.io.Source.fromInputStream (in).getLines ().map (_.r).toList
+
+      in.close ()
+      r
+    } catch {
+      case e: IOException =>
+      throw new RuntimeException ("Invalid filter file " + f, e)
+    }
   }
 
 }
