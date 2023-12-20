@@ -7,7 +7,6 @@ import com.coxautodata.SparkDistCPOptions
 import com.coxautodata.objects._
 import org.apache.hadoop.fs._
 import org.apache.hadoop.io.IOUtils
-import org.apache.log4j.Level
 
 import scala.util.{Failure, Success, Try}
 
@@ -34,7 +33,7 @@ object CopyUtils extends Logging {
     taskAttemptID: Long
   ): DistCPResult = {
 
-    if (options.verbose) setLogLevel(Level.DEBUG)
+    if (options.verbose) setLogLevel("DEBUG")
 
     val r = {
       if (definition.source.isDirectory) {
@@ -66,7 +65,7 @@ object CopyUtils extends Logging {
     options: SparkDistCPOptions
   ): DeleteResult = {
 
-    if (options.verbose) setLogLevel(Level.DEBUG)
+    if (options.verbose) setLogLevel("DEBUG")
 
     val path = new Path(uri)
 
