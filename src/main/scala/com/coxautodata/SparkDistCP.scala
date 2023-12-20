@@ -5,7 +5,6 @@ import java.net.URI
 import com.coxautodata.objects._
 import com.coxautodata.utils.{CopyUtils, FileListUtils, PathUtils}
 import org.apache.hadoop.fs._
-import org.apache.log4j.Level
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.apache.spark.{HashPartitioner, TaskContext}
@@ -77,7 +76,7 @@ object SparkDistCP extends Logging {
 
     if (options.verbose) {
       sparkSession.sparkContext.setLogLevel("DEBUG")
-      setLogLevel(Level.DEBUG)
+      setLogLevel("DEBUG")
     }
 
     val qualifiedSourcePaths = sourcePaths.map(
